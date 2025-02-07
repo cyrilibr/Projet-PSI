@@ -23,7 +23,7 @@ namespace Projet_PSI
         public List<Noeud> Voisins 
         { 
             get { return voisins; }
-            set { voisins = value > 0 ? value : 0; }
+            //set { voisins = value > 0 ? value : 0; }
         }
 
         public Noeud(int id, string nom)
