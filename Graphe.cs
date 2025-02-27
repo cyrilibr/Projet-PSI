@@ -53,36 +53,42 @@ namespace Projet_PSI
             return matriceAdjacence[id1, id2] != 0;
         }
 
-        public void AfficherGraphe()
+        public string AfficherListeAdjacence()
         {
+            string repo = "";
+
             foreach (var noeud in noeuds.Values)
             {
-                Console.Write(noeud.Nom + " -> ");
+                repo += $"\n{noeud.Nom} -> ";
                 foreach (var voisin in noeud.Voisins)
                 {
-                    Console.Write(voisin.Nom + " ");
+                    repo += $"{voisin.Nom} ";
                 }
-                Console.WriteLine();
             }
+            return repo;
         }
 
-        public void AfficherMatriceAdjacence()
+        public string AfficherMatriceAdjacence()
         {
-            Console.WriteLine("Matrice d'Adjacence:");
+            string repo = "\n";
+
             for (int i = 0; i < taille; i++)
             {
                 for (int j = 0; j < taille; j++)
                 {
-                    Console.Write(matriceAdjacence[i, j] + " ");
+                    repo += $"{matriceAdjacence[i, j]} ";
                 }
-                Console.WriteLine();
+                repo += $"\n";
             }
+            return repo;
         }
 
         // Parcours en largeur (BFS)
-        public void ParcoursLargeur(int idDepart)
+        public string ParcoursLargeur(int idDepart)
         {
-            if (!noeuds.ContainsKey(idDepart)) return;
+            string repo = "\n";
+
+            if (!noeuds.ContainsKey(idDepart)) return repo;
             HashSet<int> visite = new HashSet<int>();
             Queue<Noeud> file = new Queue<Noeud>();
 
@@ -92,7 +98,7 @@ namespace Projet_PSI
             while (file.Count > 0)
             {
                 Noeud courant = file.Dequeue();
-                Console.Write(courant.Nom + " ");
+                repo += $"{courant.Nom} ";
 
                 foreach (var voisin in courant.Voisins)
                 {
@@ -103,13 +109,16 @@ namespace Projet_PSI
                     }
                 }
             }
-            Console.WriteLine();
+            repo += $"\n";
+            return repo;
         }
 
         // Parcours en profondeur (DFS)
-        public void ParcoursProfondeur(int idDepart)
+        public string ParcoursProfondeur(int idDepart)
         {
-            if (!noeuds.ContainsKey(idDepart)) return;
+            string repo = "\n";
+
+            if (!noeuds.ContainsKey(idDepart)) return repo;
             HashSet<int> visite = new HashSet<int>();
             Stack<Noeud> pile = new Stack<Noeud>();
 
@@ -121,7 +130,7 @@ namespace Projet_PSI
                 if (!visite.Contains(courant.Id))
                 {
                     visite.Add(courant.Id);
-                    Console.Write(courant.Nom + " ");
+                    repo += $"{courant.Nom} ";
 
                     foreach (var voisin in courant.Voisins)
                     {
@@ -132,8 +141,71 @@ namespace Projet_PSI
                     }
                 }
             }
-            Console.WriteLine();
+
+            repo += $"\n";
+            return repo;
         }
 
+        public bool EstConnexe()
+        {
+            if (noeuds.Count == 0) return false;
+
+            HashSet<int> visite = new HashSet<int>();
+            Queue<int> file = new Queue<int>();
+            int premierNoeud = noeuds.Keys.First();
+
+            file.Enqueue(premierNoeud);
+            visite.Add(premierNoeud);
+
+            while (file.Count > 0)
+            {
+                int courant = file.Dequeue();
+                foreach (var voisin in noeuds[courant].Voisins)
+                {
+                    if (!visite.Contains(voisin.Id))
+                    {
+                        visite.Add(voisin.Id);
+                        file.Enqueue(voisin.Id);
+                    }
+                }
+            }
+
+            return visite.Count == noeuds.Count;
+        }
+
+        public bool ContientCycle()
+        {
+            HashSet<int> visite = new HashSet<int>();
+            HashSet<int> recStack = new HashSet<int>();
+
+            foreach (var noeud in noeuds.Keys)
+            {
+                if (DetecterCycle(noeud, visite, recStack, -1))
+                    return true;
+            }
+            return false;
+        }
+
+        private bool DetecterCycle(int noeud, HashSet<int> visite, HashSet<int> recStack, int parent)
+        {
+            visite.Add(noeud);
+            recStack.Add(noeud);
+
+            foreach (var voisin in noeuds[noeud].Voisins)
+            {
+                if (!visite.Contains(voisin.Id))
+                {
+                    if (DetecterCycle(voisin.Id, visite, recStack, noeud))
+                        return true;
+                }
+                else if (voisin.Id != parent && recStack.Contains(voisin.Id))
+                {
+                    return true;
+                }
+            }
+
+            recStack.Remove(noeud);
+            return false;
+        }
     }
 }
