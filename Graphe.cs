@@ -8,14 +8,31 @@ namespace Projet_PSI
 {
     public class Graphe
     {
-        private Dictionary<int, Noeud> noeuds;
-        private List<Lien> liens;
-        private int[,] matriceAdjacence;
-        private int taille;
+        private Dictionary<int, Noeud> noeuds; // Dictionnaire des nœuds du graphe
+        private List<Lien> liens; // Liste des liens entre les nœuds
+        private int[,] matriceAdjacence; // Matrice d'adjacence pour représenter les connexions
+        private int taille; // Nombre total de nœuds possibles
 
-        public Dictionary<int, Noeud> Noeuds { get { return noeuds; } }
-        public List<Lien> Liens { get { return liens; } }
+        /// <summary>
+        /// Obtient les nœuds du graphe
+        /// </summary>
+        public Dictionary<int, Noeud> Noeuds 
+        { 
+            get { return noeuds; } 
+        }
 
+        /// <summary>
+        /// Obtient la liste des liens du graphe
+        /// </summary>
+        public List<Lien> Liens 
+        { 
+            get { return liens; } 
+        }
+
+        /// <summary>
+        /// Constructeur de la classe Graphe
+        /// </summary>
+        /// <param name="taille">Nombre maximal de nœuds dans le graphe</param>
         public Graphe(int taille)
         {
             this.taille = taille;
@@ -24,6 +41,11 @@ namespace Projet_PSI
             this.matriceAdjacence = new int[taille, taille];
         }
 
+        /// <summary>
+        /// Ajoute un nœud au graphe
+        /// </summary>
+        /// <param name="id">Identifiant unique du nœud</param>
+        /// <param name="nom">Nom du nœud</param>
         public void AjouterNoeud(int id, string nom)
         {
             if (!noeuds.ContainsKey(id))
@@ -32,6 +54,12 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Ajoute un lien entre deux nœuds du graphe
+        /// </summary>
+        /// <param name="id1">Identifiant du premier nœud</param>
+        /// <param name="id2">Identifiant du second nœud</param>
+        /// <param name="poids">Poids du lien (1 par défaut)</param>
         public void AjouterLien(int id1, int id2, int poids = 1)
         {
             if (noeuds.ContainsKey(id1) && noeuds.ContainsKey(id2))
@@ -48,15 +76,23 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Verifie si un lien existe entre deux nœuds
+        /// </summary>
+        /// <param name="id1">Identifiant du premier nœud</param>
+        /// <param name="id2">Identifiant du second nœud</param>
+        /// <returns>Vrai si le lien existe, sinon faux</returns>
         public bool ExisteLien(int id1, int id2)
         {
             return matriceAdjacence[id1, id2] != 0;
         }
 
+        /// <summary>
+        /// Retourne la liste d'adjacence du graphe
+        /// </summary>
         public string AfficherListeAdjacence()
         {
             string repo = "";
-
             foreach (var noeud in noeuds.Values)
             {
                 repo += $"\n{noeud.Nom} -> ";
@@ -68,27 +104,33 @@ namespace Projet_PSI
             return repo;
         }
 
+        /// <summary>
+        /// Retourne la matrice d'adjacence du graphe
+        /// </summary>
         public string AfficherMatriceAdjacence()
         {
             string repo = "\n";
-
             for (int i = 0; i < taille; i++)
             {
                 for (int j = 0; j < taille; j++)
                 {
                     repo += $"{matriceAdjacence[i, j]} ";
                 }
-                repo += $"\n";
+                repo += "\n";
             }
             return repo;
         }
 
-        // Parcours en largeur (BFS)
+        /// <summary>
+        /// Effectue un parcours en largeur (BFS) a partir d'un nœud donne
+        /// </summary>
+        /// <param name="idDepart">Identifiant du nœud de depart</param>
+        /// <returns>Ordre de parcours</returns>
         public string ParcoursLargeur(int idDepart)
         {
             string repo = "\n";
-
             if (!noeuds.ContainsKey(idDepart)) return repo;
+
             HashSet<int> visite = new HashSet<int>();
             Queue<Noeud> file = new Queue<Noeud>();
 
@@ -109,19 +151,21 @@ namespace Projet_PSI
                     }
                 }
             }
-            repo += $"\n";
             return repo;
         }
 
-        // Parcours en profondeur (DFS)
+        /// <summary>
+        /// Effectue un parcours en profondeur (DFS) a partir d'un nœud donne
+        /// </summary>
+        /// <param name="idDepart">Identifiant du nœud de depart</param>
+        /// <returns>Ordre de parcours</returns>
         public string ParcoursProfondeur(int idDepart)
         {
             string repo = "\n";
-
             if (!noeuds.ContainsKey(idDepart)) return repo;
+
             HashSet<int> visite = new HashSet<int>();
             Stack<Noeud> pile = new Stack<Noeud>();
-
             pile.Push(noeuds[idDepart]);
 
             while (pile.Count > 0)
@@ -141,11 +185,13 @@ namespace Projet_PSI
                     }
                 }
             }
-
-            repo += $"\n";
             return repo;
         }
 
+        /// <summary>
+        /// Verifie si le graphe est connexe
+        /// </summary>
+        /// <returns>Vrai si le graphe est connexe, sinon faux</returns>
         public bool EstConnexe()
         {
             if (noeuds.Count == 0) return false;
@@ -169,10 +215,13 @@ namespace Projet_PSI
                     }
                 }
             }
-
             return visite.Count == noeuds.Count;
         }
 
+        /// <summary>
+        /// Verifie si le graphe contient un cycle
+        /// </summary>
+        /// <returns>Vrai si le graphe contient un cycle, sinon faux</returns>
         public bool ContientCycle()
         {
             HashSet<int> visite = new HashSet<int>();
@@ -193,17 +242,11 @@ namespace Projet_PSI
 
             foreach (var voisin in noeuds[noeud].Voisins)
             {
-                if (!visite.Contains(voisin.Id))
-                {
-                    if (DetecterCycle(voisin.Id, visite, recStack, noeud))
-                        return true;
-                }
-                else if (voisin.Id != parent && recStack.Contains(voisin.Id))
-                {
+                if (!visite.Contains(voisin.Id) && DetecterCycle(voisin.Id, visite, recStack, noeud))
                     return true;
-                }
+                else if (voisin.Id != parent && recStack.Contains(voisin.Id))
+                    return true;
             }
-
             recStack.Remove(noeud);
             return false;
         }

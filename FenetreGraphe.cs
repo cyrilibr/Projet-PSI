@@ -1,18 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Projet_PSI
 {
     public class FenetreGraphe : Form
     {
-        private Button btnAfficherInfos; // Bouton pour afficher les informations
+        private Button btnAfficherInfos; // Bouton pour afficher les informations du graphe
+        private Graphe graphe; // Instance du graphe à afficher
+        private Dictionary<int, Point> positions; // Dictionnaire des positions des nœuds
+        private int rayon = 20; // Rayon des cercles représentant les nœuds
 
-        private Graphe graphe;
-        private Dictionary<int, Point> positions;
-        private int rayon = 20;
-
+        /// <summary>
+        /// Constructeur de la classe FenetreGraphe
+        /// </summary>
+        /// <param name="graphe">Instance du graphe à afficher</param>
         public FenetreGraphe(Graphe graphe)
         {
             this.graphe = graphe;
@@ -24,6 +28,9 @@ namespace Projet_PSI
             GenererPositions();
         }
 
+        /// <summary>
+        /// Genere des positions aléatoires pour les nœuds du graphe
+        /// </summary>
         private void GenererPositions()
         {
             positions = new Dictionary<int, Point>();
@@ -34,6 +41,10 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Cree un bouton permettant d'afficher les informations du graphe
+        /// </summary>
+        /// <returns>Le bouton cree</returns>
         private Button CreerBouton()
         {
             btnAfficherInfos = new Button();
@@ -43,35 +54,27 @@ namespace Projet_PSI
             return btnAfficherInfos;
         }
 
+        /// <summary>
+        /// Affiche des informations sur le graphe lorsqu'on clique sur le bouton
+        /// </summary>
         private void BoutonClique(object sender, EventArgs e)
         {
-            string message = "Liste d'adjacence: ";
-            message += graphe.AfficherListeAdjacence();
-
-            
+            string message = "Liste d'adjacence: " + graphe.AfficherListeAdjacence();
             message += "\n\nVérification des connexions:";
             message += $"\nAlice est connectée à Bob ? {graphe.ExisteLien(0, 1)}";
             message += $"\nAlice est connectée à David ? {graphe.ExisteLien(0, 3)}";
-
-
-            message += "\n\nMatrice d'adjacence:";
-            message += graphe.AfficherMatriceAdjacence();
-
-
-            message += "\nParcours en largeur (BFS) depuis Alice:";
-            message += graphe.ParcoursLargeur(0);
-
-
-            message += "\nParcours en profondeur (DFS) depuis Alice: ";
-            message += graphe.ParcoursProfondeur(0);
-
+            message += "\n\nMatrice d'adjacence:" + graphe.AfficherMatriceAdjacence();
+            message += "\nParcours en largeur (BFS) depuis Alice:" + graphe.ParcoursLargeur(0);
+            message += "\nParcours en profondeur (DFS) depuis Alice: " + graphe.ParcoursProfondeur(0);
             message += $"\nLe graphe est connexe ? {graphe.EstConnexe()}";
             message += $"\nLe graphe contient un cycle ? {graphe.ContientCycle()}";
 
-
-            MessageBox.Show(message, "\n\nInformations sur le Graphe", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(message, "Informations sur le Graphe", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        /// <summary>
+        /// Dessine le graphe sur la fenetre
+        /// </summary>
         private void DessinerGraphe(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -92,6 +95,9 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Gere le clic de la souris pour afficher les informations d'un nœud
+        /// </summary>
         private void SourisCliquee(object sender, MouseEventArgs e)
         {
             foreach (var noeud in graphe.Noeuds.Values)

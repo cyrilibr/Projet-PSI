@@ -8,24 +8,39 @@ namespace Projet_PSI
 {
     public class Noeud
     {
-        private int id;
-        private string nom;
-        private List<Noeud> voisins;
+        private int id; // Identifiant unique du noeud
+        private string nom; // Nom du noeud
+        private List<Noeud> voisins; // Liste des noeuds voisins
 
-        public int Id 
-        { 
-            get { return id; } 
+        /// <summary>
+        /// Obtient l'identifiant du noeud
+        /// </summary>
+        public int Id
+        {
+            get { return id; }
         }
-        public string Nom 
-        { 
-            get { return nom; } 
+
+        /// <summary>
+        /// Obtient le nom du noeud
+        /// </summary>
+        public string Nom
+        {
+            get { return nom; }
         }
-        public List<Noeud> Voisins 
-        { 
+
+        /// <summary>
+        /// Obtient la liste des voisins du noeud
+        /// </summary>
+        public List<Noeud> Voisins
+        {
             get { return voisins; }
-            //set { voisins = value > 0 ? value : 0; }
         }
 
+        /// <summary>
+        /// Constructeur de la classe Noeud
+        /// </summary>
+        /// <param name="id">Identifiant unique du noeud</param>
+        /// <param name="nom">Nom du noeud</param>
         public Noeud(int id, string nom)
         {
             this.id = id;
@@ -33,6 +48,10 @@ namespace Projet_PSI
             this.voisins = new List<Noeud>();
         }
 
+        /// <summary>
+        /// Ajoute un voisin au noeud
+        /// </summary>
+        /// <param name="voisin">Noeud voisin a ajouter</param>
         public void AjouterVoisin(Noeud voisin)
         {
             if (!voisins.Contains(voisin))
@@ -41,6 +60,10 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Retourne une representation du noeud
+        /// </summary>
+        /// <returns>Une chaine de caracteres representant le noeud</returns>
         public override string ToString()
         {
             return $"Noeud {id}: {nom}";
