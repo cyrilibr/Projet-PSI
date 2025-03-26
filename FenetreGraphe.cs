@@ -95,6 +95,11 @@ namespace Projet_PSI
             }
         }
 
+        private void InitializeComponent()
+        {
+
+        }
+
         /// <summary>
         /// Gere le clic de la souris pour afficher les informations d'un nœud
         /// </summary>
