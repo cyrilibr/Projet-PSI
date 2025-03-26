@@ -16,17 +16,17 @@ namespace Projet_PSI
         /// <summary>
         /// Obtient les nœuds du graphe
         /// </summary>
-        public Dictionary<int, Noeud> Noeuds 
-        { 
-            get { return noeuds; } 
+        public Dictionary<int, Noeud> Noeuds
+        {
+            get { return noeuds; }
         }
 
         /// <summary>
         /// Obtient la liste des liens du graphe
         /// </summary>
-        public List<Lien> Liens 
-        { 
-            get { return liens; } 
+        public List<Lien> Liens
+        {
+            get { return liens; }
         }
 
         /// <summary>
@@ -249,6 +249,122 @@ namespace Projet_PSI
             }
             recStack.Remove(noeud);
             return false;
+        }
+        public Dictionary<int, int> Dijkstra(int idDepart)
+        {
+            Dictionary<int, int> distances = new Dictionary<int, int>();
+            Dictionary<int, bool> visite = new Dictionary<int, bool>();
+            PriorityQueue<int, int> filePriorite = new PriorityQueue<int, int>();
+
+            // Initialisation des distances
+            foreach (var noeud in noeuds.Keys)
+            {
+                distances[noeud] = int.MaxValue;
+                visite[noeud] = false;
+            }
+
+            // La distance du point de départ est de 0
+            distances[idDepart] = 0;
+            filePriorite.Enqueue(idDepart, 0);
+
+            while (filePriorite.Count > 0)
+            {
+                int courant = filePriorite.Dequeue();
+                if (visite[courant]) continue;
+                visite[courant] = true;
+
+                foreach (var voisin in noeuds[courant].Voisins)
+                {
+                    int poids = matriceAdjacence[courant, voisin.Id];
+                    int nouvelleDistance = distances[courant] + poids;
+
+                    if (nouvelleDistance < distances[voisin.Id])
+                    {
+                        distances[voisin.Id] = nouvelleDistance;
+                        filePriorite.Enqueue(voisin.Id, nouvelleDistance);
+                    }
+                }
+            }
+
+            return distances;
+        }
+        public Dictionary<int, int> BellmanFord(int idDepart)
+        {
+            Dictionary<int, int> distances = new Dictionary<int, int>();
+
+            // Initialisation des distances
+            foreach (var noeud in noeuds.Keys)
+            {
+                distances[noeud] = int.MaxValue;
+            }
+            distances[idDepart] = 0;
+
+            // Relaxation des arêtes |V| - 1 fois
+            for (int i = 0; i < noeuds.Count - 1; i++)
+            {
+                foreach (var lien in liens)
+                {
+                    int u = lien.Noeud1.Id;
+                    int v = lien.Noeud2.Id;
+                    int poids = lien.Poids;
+
+                    if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
+                    {
+                        distances[v] = distances[u] + poids;
+                    }
+                }
+            }
+
+            // Vérification des cycles négatifs
+            foreach (var lien in liens)
+            {
+                int u = lien.Noeud1.Id;
+                int v = lien.Noeud2.Id;
+                int poids = lien.Poids;
+
+                if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
+                {
+                    throw new Exception("Le graphe contient un cycle de poids négatif !");
+                }
+            }
+
+            return distances;
+        }
+        public int[,] FloydWarshall()
+        {
+            int[,] distances = new int[taille, taille];
+
+            // Initialisation de la matrice des distances
+            for (int i = 0; i < taille; i++)
+            {
+                for (int j = 0; j < taille; j++)
+                {
+                    if (i == j)
+                        distances[i, j] = 0;
+                    else if (matriceAdjacence[i, j] != 0)
+                        distances[i, j] = matriceAdjacence[i, j];
+                    else
+                        distances[i, j] = int.MaxValue;
+                }
+            }
+
+            // Algorithme de Floyd-Warshall
+            for (int k = 0; k < taille; k++)
+            {
+                for (int i = 0; i < taille; i++)
+                {
+                    for (int j = 0; j < taille; j++)
+                    {
+                        if (distances[i, k] != int.MaxValue && distances[k, j] != int.MaxValue
+                            && distances[i, k] + distances[k, j] < distances[i, j])
+                        {
+                            distances[i, j] = distances[i, k] + distances[k, j];
+                        }
+                    }
+                }
+            }
+
+            return distances;
         }
     }
 }
