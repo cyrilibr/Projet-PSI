@@ -1,61 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Projet_PSI
+﻿namespace Projet_PSI
 {
-    public class Lien
+    /// <summary>
+    /// Classe générique représentant un lien (arête) entre deux nœuds.
+    /// </summary>
+    /// <typeparam name="T">Le type de donnée contenu dans les nœuds</typeparam>
+    public class Lien<T>
     {
-        private Noeud noeud1; // Premier noeud du lien
-        private Noeud noeud2; // Deuxieme noeud du lien
-        private int poids; // Poids du lien
+        public Noeud<T> Noeud1 { get; private set; }
+        public Noeud<T> Noeud2 { get; private set; }
+        public int Poids { get; private set; }
+        public bool Bidirectionnel { get; private set; }
 
         /// <summary>
-        /// Obtient le premier noeud du lien
+        /// Constructeur du lien.
         /// </summary>
-        public Noeud Noeud1
+        /// <param name="noeud1">Premier nœud</param>
+        /// <param name="noeud2">Deuxième nœud</param>
+        /// <param name="poids">Poids de l’arête (ex : temps de trajet)</param>
+        /// <param name="bidirectionnel">Indique si la liaison est à double sens</param>
+        public Lien(Noeud<T> noeud1, Noeud<T> noeud2, int poids = 1, bool bidirectionnel = false)
         {
-            get { return noeud1; }
+            Noeud1 = noeud1;
+            Noeud2 = noeud2;
+            Poids = poids;
+            Bidirectionnel = bidirectionnel;
         }
 
-        /// <summary>
-        /// Obtient le deuxieme noeud du lien
-        /// </summary>
-        public Noeud Noeud2
-        {
-            get { return noeud2; }
-        }
-
-        /// <summary>
-        /// Obtient le poids du lien
-        /// </summary>
-        public int Poids
-        {
-            get { return poids; }
-        }
-
-        /// <summary>
-        /// Constructeur de la classe Lien
-        /// </summary>
-        /// <param name="noeud1">Premier noeud du lien</param>
-        /// <param name="noeud2">Deuxieme noeud du lien</param>
-        /// <param name="poids">Poids du lien (1 par defaut)</param>
-        public Lien(Noeud noeud1, Noeud noeud2, int poids = 1)
-        {
-            this.noeud1 = noeud1;
-            this.noeud2 = noeud2;
-            this.poids = poids;
-        }
-
-        /// <summary>
-        /// Retourne une representation du lien
-        /// </summary>
-        /// <returns>Une chaine de caracteres representant le lien</returns>
         public override string ToString()
         {
-            return $"Lien entre {noeud1.Nom} et {noeud2.Nom}, Poids: {poids}";
+            return $"Lien entre {Noeud1.Data} et {Noeud2.Data}, Poids: {Poids}";
         }
     }
 }

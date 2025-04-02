@@ -1,60 +1,65 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Projet_PSI
 {
     internal class Program
     {
+        /// <summary>
+        /// Point d’entrée de l’application.
+        /// </summary>
+        [STAThread]
         static void Main(string[] args)
         {
-            int n = 0;
+            string connStr = "server=localhost;user=root;password=root;database=psi;";
+            MySqlConnection conn = new MySqlConnection(connStr);
+            conn.Open();
 
-            Graphe graphe;
-
-            if (n == 1)
+            // Lecture des stations avec leurs coordonnées
+            Dictionary<int, Station> stationMap = new Dictionary<int, Station>();
+            var cmd = new MySqlCommand("SELECT IDStation, LibelleStation, Latitude, Longitude FROM stations_metro", conn);
+            var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                graphe = new Graphe(5);
-
-                graphe.AjouterNoeud(0, "Alice");
-                graphe.AjouterNoeud(1, "Bob");
-                graphe.AjouterNoeud(2, "Charlie");
-                graphe.AjouterNoeud(3, "David");
-                graphe.AjouterNoeud(4, "Emma");
-
-                graphe.AjouterLien(0, 1);
-                graphe.AjouterLien(0, 2);
-                graphe.AjouterLien(1, 3);
-                graphe.AjouterLien(2, 4);
-                graphe.AjouterLien(3, 4);
+                int id = reader.GetInt32("IDStation");
+                string libelle = reader.GetString("LibelleStation");
+                double latitude = reader.GetDouble("Latitude");
+                double longitude = reader.GetDouble("Longitude");
+                stationMap[id] = new Station { ID = id, Libelle = libelle, Latitude = latitude, Longitude = longitude };
             }
-            else
+            reader.Close();
+
+            // Création du graphe générique avec des stations
+            Graphe<Station> graphe = new Graphe<Station>();
+            foreach (var pair in stationMap)
             {
-                graphe = new Graphe(35);
-
-                for (int i = 0; i < 35; i++)
-                {
-                    graphe.AjouterNoeud(i, i.ToString());
-                }
-
-                var liens = new (int, int)[] {
-                (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (8, 1), (9, 1), (11, 1), (12, 1), (13, 1), (14, 1), (18, 1), (20, 1), (22, 1), (32, 1),
-                (3, 2), (4, 2), (8, 2), (14, 2), (18, 2), (20, 2), (22, 2), (31, 2),
-                (4, 3), (8, 3), (9, 3), (10, 3), (14, 3), (28, 3), (29, 3), (33, 3),
-                (8, 4), (13, 4), (14, 4), (7, 5), (11, 5), (7, 6), (11, 6), (17, 6),
-                (17, 7), (31, 9), (33, 9), (34, 9), (34, 10), (34, 14), (33, 15), (34, 15),
-                (33, 16), (34, 16), (33, 19), (34, 19), (34, 20), (33, 21), (34, 21), (33, 23),
-                (34, 23), (26, 24), (28, 24), (30, 24), (33, 24), (34, 24), (26, 25), (28, 25),
-                (32, 25), (32, 26), (30, 27), (34, 27), (34, 28), (32, 29), (34, 29), (33, 30),
-                (34, 30), (33, 31), (34, 31), (33, 32), (34, 32), (34, 33)
-            };
-
-                foreach (var lien in liens)
-                {
-                    graphe.AjouterLien(lien.Item1, lien.Item2);
-                }
+                Noeud<Station> noeud = new Noeud<Station>(pair.Key, pair.Value);
+                graphe.AjouterNoeud(noeud);
             }
+
+            // Lecture des liens (les liaisons pouvant être non bidirectionnelles)
+            cmd = new MySqlCommand("SELECT IDStation, Precedent, Suivant, TempsChangement FROM stations_metro", conn);
+            reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                int id = reader.GetInt32("IDStation");
+                int? precedent = reader.IsDBNull(reader.GetOrdinal("Precedent")) ? (int?)null : reader.GetInt32("Precedent");
+                int? suivant = reader.IsDBNull(reader.GetOrdinal("Suivant")) ? (int?)null : reader.GetInt32("Suivant");
+                int poids = reader.IsDBNull(reader.GetOrdinal("TempsChangement")) ? 1 : reader.GetInt32("TempsChangement");
+
+                // On suppose ici que le lien "Precedent" signifie un lien allant de la station précédente vers la station courante.
+                if (precedent.HasValue && stationMap.ContainsKey(precedent.Value))
+                    graphe.AjouterLien(precedent.Value, id, poids, false);
+
+                // Le lien "Suivant" est interprété comme allant de la station courante vers la station suivante.
+                if (suivant.HasValue && stationMap.ContainsKey(suivant.Value))
+                    graphe.AjouterLien(id, suivant.Value, poids, false);
+            }
+            reader.Close();
+            conn.Close();
 
             Application.EnableVisualStyles();
             Application.Run(new FenetreGraphe(graphe));

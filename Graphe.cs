@@ -2,369 +2,279 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Projet_PSI
 {
-    public class Graphe
+    /// <summary>
+    /// Classe générique représentant un graphe.
+    /// </summary>
+    /// <typeparam name="T">Le type de donnée contenu dans chaque nœud</typeparam>
+    public class Graphe<T>
     {
-        private Dictionary<int, Noeud> noeuds; // Dictionnaire des nœuds du graphe
-        private List<Lien> liens; // Liste des liens entre les nœuds
-        private int[,] matriceAdjacence; // Matrice d'adjacence pour représenter les connexions
-        private int taille; // Nombre total de nœuds possibles
+        public Dictionary<int, Noeud<T>> Noeuds { get; private set; }
+        public List<Lien<T>> Liens { get; private set; }
+        // Représente la matrice d’adjacence sous forme de dictionnaire.
+        private Dictionary<int, Dictionary<int, int>> adjacence;
 
-        /// <summary>
-        /// Obtient les nœuds du graphe
-        /// </summary>
-        public Dictionary<int, Noeud> Noeuds
+        public Graphe()
         {
-            get { return noeuds; }
+            Noeuds = new Dictionary<int, Noeud<T>>();
+            Liens = new List<Lien<T>>();
+            adjacence = new Dictionary<int, Dictionary<int, int>>();
         }
 
         /// <summary>
-        /// Obtient la liste des liens du graphe
+        /// Ajoute un nœud dans le graphe.
         /// </summary>
-        public List<Lien> Liens
+        public void AjouterNoeud(Noeud<T> noeud)
         {
-            get { return liens; }
-        }
-
-        /// <summary>
-        /// Constructeur de la classe Graphe
-        /// </summary>
-        /// <param name="taille">Nombre maximal de nœuds dans le graphe</param>
-        public Graphe(int taille)
-        {
-            this.taille = taille;
-            this.noeuds = new Dictionary<int, Noeud>();
-            this.liens = new List<Lien>();
-            this.matriceAdjacence = new int[taille, taille];
-        }
-
-        /// <summary>
-        /// Ajoute un nœud au graphe
-        /// </summary>
-        /// <param name="id">Identifiant unique du nœud</param>
-        /// <param name="nom">Nom du nœud</param>
-        public void AjouterNoeud(int id, string nom)
-        {
-            if (!noeuds.ContainsKey(id))
+            if (!Noeuds.ContainsKey(noeud.Id))
             {
-                noeuds[id] = new Noeud(id, nom);
+                Noeuds.Add(noeud.Id, noeud);
+                adjacence[noeud.Id] = new Dictionary<int, int>();
             }
         }
 
         /// <summary>
-        /// Ajoute un lien entre deux nœuds du graphe
+        /// Ajoute un lien entre deux nœuds.
         /// </summary>
         /// <param name="id1">Identifiant du premier nœud</param>
-        /// <param name="id2">Identifiant du second nœud</param>
-        /// <param name="poids">Poids du lien (1 par défaut)</param>
-        public void AjouterLien(int id1, int id2, int poids = 1)
+        /// <param name="id2">Identifiant du deuxième nœud</param>
+        /// <param name="poids">Poids de l’arête</param>
+        /// <param name="bidirectionnel">Si vrai, ajoute le lien dans les deux sens</param>
+        public void AjouterLien(int id1, int id2, int poids = 1, bool bidirectionnel = false)
         {
-            if (noeuds.ContainsKey(id1) && noeuds.ContainsKey(id2))
+            if (Noeuds.ContainsKey(id1) && Noeuds.ContainsKey(id2))
             {
-                Noeud n1 = noeuds[id1];
-                Noeud n2 = noeuds[id2];
-                Lien lien = new Lien(n1, n2, poids);
-                liens.Add(lien);
+                Noeud<T> n1 = Noeuds[id1];
+                Noeud<T> n2 = Noeuds[id2];
+                Liens.Add(new Lien<T>(n1, n2, poids, bidirectionnel));
                 n1.AjouterVoisin(n2);
-                n2.AjouterVoisin(n1);
+                if (bidirectionnel)
+                    n2.AjouterVoisin(n1);
 
-                matriceAdjacence[id1, id2] = poids;
-                matriceAdjacence[id2, id1] = poids;
+                // Mise à jour de la structure d'adjacence
+                adjacence[id1][id2] = poids;
+                if (bidirectionnel)
+                {
+                    if (!adjacence[id2].ContainsKey(id1))
+                        adjacence[id2][id1] = poids;
+                }
             }
         }
 
         /// <summary>
-        /// Verifie si un lien existe entre deux nœuds
-        /// </summary>
-        /// <param name="id1">Identifiant du premier nœud</param>
-        /// <param name="id2">Identifiant du second nœud</param>
-        /// <returns>Vrai si le lien existe, sinon faux</returns>
-        public bool ExisteLien(int id1, int id2)
-        {
-            return matriceAdjacence[id1, id2] != 0;
-        }
-
-        /// <summary>
-        /// Retourne la liste d'adjacence du graphe
+        /// Affiche la liste d’adjacence.
         /// </summary>
         public string AfficherListeAdjacence()
         {
-            string repo = "";
-            foreach (var noeud in noeuds.Values)
+            StringBuilder sb = new StringBuilder();
+            foreach (var noeud in Noeuds.Values)
             {
-                repo += $"\n{noeud.Nom} -> ";
-                foreach (var voisin in noeud.Voisins)
-                {
-                    repo += $"{voisin.Nom} ";
-                }
+                sb.AppendLine($"{noeud.Data} -> {string.Join(", ", noeud.Voisins.Select(v => v.Data.ToString()))}");
             }
-            return repo;
+            return sb.ToString();
         }
 
         /// <summary>
-        /// Retourne la matrice d'adjacence du graphe
+        /// Vérifie si un lien existe entre deux nœuds.
         /// </summary>
-        public string AfficherMatriceAdjacence()
+        public bool ExisteLien(int id1, int id2)
         {
-            string repo = "\n";
-            for (int i = 0; i < taille; i++)
-            {
-                for (int j = 0; j < taille; j++)
-                {
-                    repo += $"{matriceAdjacence[i, j]} ";
-                }
-                repo += "\n";
-            }
-            return repo;
+            return adjacence.ContainsKey(id1) && adjacence[id1].ContainsKey(id2);
         }
 
         /// <summary>
-        /// Effectue un parcours en largeur (BFS) a partir d'un nœud donne
+        /// Parcours en largeur (BFS) à partir d’un nœud de départ.
         /// </summary>
-        /// <param name="idDepart">Identifiant du nœud de depart</param>
-        /// <returns>Ordre de parcours</returns>
         public string ParcoursLargeur(int idDepart)
         {
-            string repo = "\n";
-            if (!noeuds.ContainsKey(idDepart)) return repo;
-
+            StringBuilder sb = new StringBuilder();
+            if (!Noeuds.ContainsKey(idDepart))
+                return "";
             HashSet<int> visite = new HashSet<int>();
-            Queue<Noeud> file = new Queue<Noeud>();
-
-            file.Enqueue(noeuds[idDepart]);
+            Queue<Noeud<T>> queue = new Queue<Noeud<T>>();
+            queue.Enqueue(Noeuds[idDepart]);
             visite.Add(idDepart);
-
-            while (file.Count > 0)
+            while (queue.Count > 0)
             {
-                Noeud courant = file.Dequeue();
-                repo += $"{courant.Nom} ";
-
+                var courant = queue.Dequeue();
+                sb.Append(courant.Data + " ");
                 foreach (var voisin in courant.Voisins)
                 {
                     if (!visite.Contains(voisin.Id))
                     {
                         visite.Add(voisin.Id);
-                        file.Enqueue(voisin);
+                        queue.Enqueue(voisin);
                     }
                 }
             }
-            return repo;
+            return sb.ToString();
         }
 
         /// <summary>
-        /// Effectue un parcours en profondeur (DFS) a partir d'un nœud donne
+        /// Parcours en profondeur (DFS) à partir d’un nœud de départ.
         /// </summary>
-        /// <param name="idDepart">Identifiant du nœud de depart</param>
-        /// <returns>Ordre de parcours</returns>
         public string ParcoursProfondeur(int idDepart)
         {
-            string repo = "\n";
-            if (!noeuds.ContainsKey(idDepart)) return repo;
-
+            StringBuilder sb = new StringBuilder();
+            if (!Noeuds.ContainsKey(idDepart))
+                return "";
             HashSet<int> visite = new HashSet<int>();
-            Stack<Noeud> pile = new Stack<Noeud>();
-            pile.Push(noeuds[idDepart]);
-
-            while (pile.Count > 0)
+            Stack<Noeud<T>> stack = new Stack<Noeud<T>>();
+            stack.Push(Noeuds[idDepart]);
+            while (stack.Count > 0)
             {
-                Noeud courant = pile.Pop();
+                var courant = stack.Pop();
                 if (!visite.Contains(courant.Id))
                 {
                     visite.Add(courant.Id);
-                    repo += $"{courant.Nom} ";
-
+                    sb.Append(courant.Data + " ");
                     foreach (var voisin in courant.Voisins)
                     {
                         if (!visite.Contains(voisin.Id))
-                        {
-                            pile.Push(voisin);
-                        }
+                            stack.Push(voisin);
                     }
                 }
             }
-            return repo;
+            return sb.ToString();
         }
 
         /// <summary>
-        /// Verifie si le graphe est connexe
+        /// Vérifie si le graphe est connexe.
         /// </summary>
-        /// <returns>Vrai si le graphe est connexe, sinon faux</returns>
         public bool EstConnexe()
         {
-            if (noeuds.Count == 0) return false;
-
+            if (Noeuds.Count == 0)
+                return false;
             HashSet<int> visite = new HashSet<int>();
-            Queue<int> file = new Queue<int>();
-            int premierNoeud = noeuds.Keys.First();
-
-            file.Enqueue(premierNoeud);
-            visite.Add(premierNoeud);
-
-            while (file.Count > 0)
+            Queue<int> queue = new Queue<int>();
+            int premier = Noeuds.Keys.First();
+            queue.Enqueue(premier);
+            visite.Add(premier);
+            while (queue.Count > 0)
             {
-                int courant = file.Dequeue();
-                foreach (var voisin in noeuds[courant].Voisins)
+                int courant = queue.Dequeue();
+                foreach (var voisin in Noeuds[courant].Voisins)
                 {
                     if (!visite.Contains(voisin.Id))
                     {
                         visite.Add(voisin.Id);
-                        file.Enqueue(voisin.Id);
+                        queue.Enqueue(voisin.Id);
                     }
                 }
             }
-            return visite.Count == noeuds.Count;
+            return visite.Count == Noeuds.Count;
         }
 
         /// <summary>
-        /// Verifie si le graphe contient un cycle
+        /// Algorithme de Dijkstra pour calculer les plus courts chemins à partir d’un nœud source.
         /// </summary>
-        /// <returns>Vrai si le graphe contient un cycle, sinon faux</returns>
-        public bool ContientCycle()
-        {
-            HashSet<int> visite = new HashSet<int>();
-            HashSet<int> recStack = new HashSet<int>();
-
-            foreach (var noeud in noeuds.Keys)
-            {
-                if (DetecterCycle(noeud, visite, recStack, -1))
-                    return true;
-            }
-            return false;
-        }
-
-        private bool DetecterCycle(int noeud, HashSet<int> visite, HashSet<int> recStack, int parent)
-        {
-            visite.Add(noeud);
-            recStack.Add(noeud);
-
-            foreach (var voisin in noeuds[noeud].Voisins)
-            {
-                if (!visite.Contains(voisin.Id) && DetecterCycle(voisin.Id, visite, recStack, noeud))
-                    return true;
-                else if (voisin.Id != parent && recStack.Contains(voisin.Id))
-                    return true;
-            }
-            recStack.Remove(noeud);
-            return false;
-        }
         public Dictionary<int, int> Dijkstra(int idDepart)
         {
             Dictionary<int, int> distances = new Dictionary<int, int>();
-            Dictionary<int, bool> visite = new Dictionary<int, bool>();
-            PriorityQueue<int, int> filePriorite = new PriorityQueue<int, int>();
+            HashSet<int> visited = new HashSet<int>();
+            // Utilisation de la PriorityQueue (disponible à partir de .NET 6)
+            PriorityQueue<int, int> pq = new PriorityQueue<int, int>();
 
-            // Initialisation des distances
-            foreach (var noeud in noeuds.Keys)
-            {
+            foreach (var noeud in Noeuds.Keys)
                 distances[noeud] = int.MaxValue;
-                visite[noeud] = false;
-            }
-
-            // La distance du point de départ est de 0
             distances[idDepart] = 0;
-            filePriorite.Enqueue(idDepart, 0);
+            pq.Enqueue(idDepart, 0);
 
-            while (filePriorite.Count > 0)
+            while (pq.Count > 0)
             {
-                int courant = filePriorite.Dequeue();
-                if (visite[courant]) continue;
-                visite[courant] = true;
-
-                foreach (var voisin in noeuds[courant].Voisins)
+                int courant = pq.Dequeue();
+                if (visited.Contains(courant))
+                    continue;
+                visited.Add(courant);
+                if (adjacence.ContainsKey(courant))
                 {
-                    int poids = matriceAdjacence[courant, voisin.Id];
-                    int nouvelleDistance = distances[courant] + poids;
-
-                    if (nouvelleDistance < distances[voisin.Id])
+                    foreach (var kv in adjacence[courant])
                     {
-                        distances[voisin.Id] = nouvelleDistance;
-                        filePriorite.Enqueue(voisin.Id, nouvelleDistance);
-                    }
-                }
-            }
-
-            return distances;
-        }
-        public Dictionary<int, int> BellmanFord(int idDepart)
-        {
-            Dictionary<int, int> distances = new Dictionary<int, int>();
-
-            // Initialisation des distances
-            foreach (var noeud in noeuds.Keys)
-            {
-                distances[noeud] = int.MaxValue;
-            }
-            distances[idDepart] = 0;
-
-            // Relaxation des arêtes |V| - 1 fois
-            for (int i = 0; i < noeuds.Count - 1; i++)
-            {
-                foreach (var lien in liens)
-                {
-                    int u = lien.Noeud1.Id;
-                    int v = lien.Noeud2.Id;
-                    int poids = lien.Poids;
-
-                    if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
-                    {
-                        distances[v] = distances[u] + poids;
-                    }
-                }
-            }
-
-            // Vérification des cycles négatifs
-            foreach (var lien in liens)
-            {
-                int u = lien.Noeud1.Id;
-                int v = lien.Noeud2.Id;
-                int poids = lien.Poids;
-
-                if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
-                {
-                    throw new Exception("Le graphe contient un cycle de poids négatif !");
-                }
-            }
-
-            return distances;
-        }
-        public int[,] FloydWarshall()
-        {
-            int[,] distances = new int[taille, taille];
-
-            // Initialisation de la matrice des distances
-            for (int i = 0; i < taille; i++)
-            {
-                for (int j = 0; j < taille; j++)
-                {
-                    if (i == j)
-                        distances[i, j] = 0;
-                    else if (matriceAdjacence[i, j] != 0)
-                        distances[i, j] = matriceAdjacence[i, j];
-                    else
-                        distances[i, j] = int.MaxValue;
-                }
-            }
-
-            // Algorithme de Floyd-Warshall
-            for (int k = 0; k < taille; k++)
-            {
-                for (int i = 0; i < taille; i++)
-                {
-                    for (int j = 0; j < taille; j++)
-                    {
-                        if (distances[i, k] != int.MaxValue && distances[k, j] != int.MaxValue
-                            && distances[i, k] + distances[k, j] < distances[i, j])
+                        int voisinId = kv.Key;
+                        int poids = kv.Value;
+                        if (distances[courant] != int.MaxValue && distances[courant] + poids < distances[voisinId])
                         {
-                            distances[i, j] = distances[i, k] + distances[k, j];
+                            distances[voisinId] = distances[courant] + poids;
+                            pq.Enqueue(voisinId, distances[voisinId]);
                         }
                     }
                 }
             }
+            return distances;
+        }
+
+        /// <summary>
+        /// Algorithme de Bellman–Ford pour calculer les plus courts chemins à partir d’un nœud source.
+        /// </summary>
+        public Dictionary<int, int> BellmanFord(int idDepart)
+        {
+            Dictionary<int, int> distances = new Dictionary<int, int>();
+            foreach (var noeud in Noeuds.Keys)
+                distances[noeud] = int.MaxValue;
+            distances[idDepart] = 0;
+
+            for (int i = 0; i < Noeuds.Count - 1; i++)
+            {
+                foreach (var lien in Liens)
+                {
+                    int u = lien.Noeud1.Id;
+                    int v = lien.Noeud2.Id;
+                    int poids = lien.Poids;
+                    if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
+                        distances[v] = distances[u] + poids;
+                }
+            }
+
+            // Vérification des cycles de poids négatif
+            foreach (var lien in Liens)
+            {
+                int u = lien.Noeud1.Id;
+                int v = lien.Noeud2.Id;
+                int poids = lien.Poids;
+                if (distances[u] != int.MaxValue && distances[u] + poids < distances[v])
+                    throw new Exception("Cycle de poids négatif détecté !");
+            }
 
             return distances;
+        }
+
+        /// <summary>
+        /// Algorithme de Floyd–Warshall pour calculer la matrice des plus courts chemins.
+        /// </summary>
+        public Dictionary<int, Dictionary<int, int>> FloydWarshall()
+        {
+            Dictionary<int, Dictionary<int, int>> dist = new Dictionary<int, Dictionary<int, int>>();
+            foreach (var i in Noeuds.Keys)
+            {
+                dist[i] = new Dictionary<int, int>();
+                foreach (var j in Noeuds.Keys)
+                {
+                    if (i == j)
+                        dist[i][j] = 0;
+                    else if (adjacence.ContainsKey(i) && adjacence[i].ContainsKey(j))
+                        dist[i][j] = adjacence[i][j];
+                    else
+                        dist[i][j] = int.MaxValue;
+                }
+            }
+
+            foreach (var k in Noeuds.Keys)
+            {
+                foreach (var i in Noeuds.Keys)
+                {
+                    foreach (var j in Noeuds.Keys)
+                    {
+                        if (dist[i][k] != int.MaxValue && dist[k][j] != int.MaxValue &&
+                            dist[i][k] + dist[k][j] < dist[i][j])
+                        {
+                            dist[i][j] = dist[i][k] + dist[k][j];
+                        }
+                    }
+                }
+            }
+            return dist;
         }
     }
 }
