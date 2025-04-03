@@ -6,30 +6,30 @@ using System.Threading.Tasks;
 
 namespace Projet_PSI
 {
-    public class Lien
+    public class Lien<T>
     {
-        private Noeud noeud1; // Premier noeud du lien
-        private Noeud noeud2; // Deuxieme noeud du lien
-        private int poids; // Poids du lien
+        private Noeud<T> noeud1;  // Premier nœud du lien
+        private Noeud<T> noeud2;  // Deuxième nœud du lien
+        private int poids;        // Poids du lien (coût, distance, etc.)
 
         /// <summary>
-        /// Obtient le premier noeud du lien
+        /// Obtient le premier nœud du lien.
         /// </summary>
-        public Noeud Noeud1
+        public Noeud<T> Noeud1
         {
             get { return noeud1; }
         }
 
         /// <summary>
-        /// Obtient le deuxieme noeud du lien
+        /// Obtient le deuxième nœud du lien.
         /// </summary>
-        public Noeud Noeud2
+        public Noeud<T> Noeud2
         {
             get { return noeud2; }
         }
 
         /// <summary>
-        /// Obtient le poids du lien
+        /// Obtient le poids du lien.
         /// </summary>
         public int Poids
         {
@@ -37,12 +37,12 @@ namespace Projet_PSI
         }
 
         /// <summary>
-        /// Constructeur de la classe Lien
+        /// Constructeur de la classe Lien.
         /// </summary>
-        /// <param name="noeud1">Premier noeud du lien</param>
-        /// <param name="noeud2">Deuxieme noeud du lien</param>
-        /// <param name="poids">Poids du lien (1 par defaut)</param>
-        public Lien(Noeud noeud1, Noeud noeud2, int poids = 1)
+        /// <param name="noeud1">Premier nœud du lien.</param>
+        /// <param name="noeud2">Deuxième nœud du lien.</param>
+        /// <param name="poids">Poids du lien (1 par défaut).</param>
+        public Lien(Noeud<T> noeud1, Noeud<T> noeud2, int poids = 1)
         {
             this.noeud1 = noeud1;
             this.noeud2 = noeud2;
@@ -50,12 +50,12 @@ namespace Projet_PSI
         }
 
         /// <summary>
-        /// Retourne une representation du lien
+        /// Retourne une représentation textuelle du lien.
         /// </summary>
-        /// <returns>Une chaine de caracteres representant le lien</returns>
+        /// <returns>Une chaîne de caractères représentant le lien.</returns>
         public override string ToString()
         {
-            return $"Lien entre {noeud1.Nom} et {noeud2.Nom}, Poids: {poids}";
+            return $"Lien entre {noeud1.Data} et {noeud2.Data}, Poids: {poids}";
         }
     }
 }
