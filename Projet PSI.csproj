@@ -3,14 +3,13 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net9.0-windows</TargetFramework>
-		<RootNamespace>Projet_PSI</RootNamespace>
+		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<UseWindowsForms>true</UseWindowsForms>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="MySql.Data" Version="9.2.0" />
+		<PackageReference Include="MySql.Data" Version="9.2.0" />
 	</ItemGroup>
 
 </Project>

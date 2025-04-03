@@ -5,7 +5,7 @@ namespace Projet_PSI
     /// <summary>
     /// Classe générique représentant un nœud dans un graphe.
     /// </summary>
-    /// <typeparam name="T">Le type de donnée contenu dans le nœud (ex. Station)</typeparam>
+    /// <typeparam name="T">Le type de donnée contenu dans le nœud</typeparam>
     public class Noeud<T>
     {
         public int Id { get; private set; }
@@ -19,9 +19,6 @@ namespace Projet_PSI
             Voisins = new List<Noeud<T>>();
         }
 
-        /// <summary>
-        /// Ajoute un voisin si ce n'est pas déjà présent.
-        /// </summary>
         public void AjouterVoisin(Noeud<T> voisin)
         {
             if (!Voisins.Contains(voisin))
