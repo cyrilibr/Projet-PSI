@@ -280,5 +280,173 @@ namespace Projet_PSI
             recStack.Remove(idNoeud);
             return false;
         }
+
+        /// <summary>
+        /// Renvoie la liste des nœuds (IDs) constituant le plus court chemin entre startId et endId,
+        /// selon Dijkstra. (Suppose que les poids sont positifs.)
+        /// </summary>
+        public List<int> CheminDijkstra(int startId, int endId)
+        {
+            var dist = new Dictionary<int, int>(); 
+            var prev = new Dictionary<int, int?>();
+            var nonVisites = new HashSet<int>(noeuds.Keys);
+
+            foreach (var id in noeuds.Keys)
+            {
+                dist[id] = int.MaxValue;
+                prev[id] = null;
+            }
+            dist[startId] = 0;
+
+            while (nonVisites.Count > 0)
+            {
+                int u = -1;
+                int minDist = int.MaxValue;
+                foreach (int id in nonVisites)
+                {
+                    if (dist[id] < minDist)
+                    {
+                        minDist = dist[id];
+                        u = id;
+                    }
+                }
+
+                if (u == -1 || u == endId) break;
+                nonVisites.Remove(u);
+
+                foreach (var voisin in noeuds[u].Voisins)
+                {
+                    int newDist = dist[u] + matriceAdjacence[u, voisin.Id];
+                    if (newDist < dist[voisin.Id])
+                    {
+                        dist[voisin.Id] = newDist;
+                        prev[voisin.Id] = u;
+                    }
+                }
+            }
+
+            var chemin = new List<int>();
+            int? current = endId;
+            while (current != null)
+            {
+                chemin.Add(current.Value);
+                current = prev[current.Value];
+            }
+            chemin.Reverse();
+
+            if (dist[endId] == int.MaxValue) chemin.Clear();
+
+            return chemin;
+        }
+
+        /// <summary>
+        /// Renvoie la liste (IDs) du plus court chemin entre startId et endId,
+        /// selon Bellman-Ford (gère éventuellement des poids négatifs, sans cycle négatif).
+        /// </summary>
+        public List<int> CheminBellmanFord(int startId, int endId)
+        {
+            var dist = new Dictionary<int, int>();
+            var prev = new Dictionary<int, int?>();
+
+            foreach (var id in noeuds.Keys)
+            {
+                dist[id] = int.MaxValue;
+                prev[id] = null;
+            }
+            dist[startId] = 0;
+
+            for (int i = 0; i < noeuds.Count - 1; i++)
+            {
+                bool changed = false;
+                foreach (var lien in liens)
+                {
+                    int u = lien.Noeud1.Id;
+                    int v = lien.Noeud2.Id;
+                    int w = lien.Poids;
+
+                    if (dist[u] != int.MaxValue && dist[u] + w < dist[v])
+                    {
+                        dist[v] = dist[u] + w;
+                        prev[v] = u;
+                        changed = true;
+                    }
+                    if (dist[v] != int.MaxValue && dist[v] + w < dist[u])
+                    {
+                        dist[u] = dist[v] + w;
+                        prev[u] = v;
+                        changed = true;
+                    }
+                }
+                if (!changed) break;
+            }
+
+            var chemin = new List<int>();
+            int? current = endId;
+            while (current != null)
+            {
+                chemin.Add(current.Value);
+                current = prev[current.Value];
+            }
+            chemin.Reverse();
+
+            if (dist[endId] == int.MaxValue) chemin.Clear();
+
+            return chemin;
+        }
+
+        /// <summary>
+        /// Renvoie la liste (IDs) du chemin entre startId et endId
+        /// en utilisant l'algorithme Floyd-Warshall (all pairs shortest path).
+        /// </summary>
+        public List<int> CheminFloydWarshall(int startId, int endId)
+        {
+            int n = this.taille;
+            int[,] distFW = new int[n, n];
+            int[,] nextFW = new int[n, n];
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    if (i == j) distFW[i, j] = 0;
+                    else
+                    {
+                        if (matriceAdjacence[i, j] == 0) distFW[i, j] = 100000000;
+                        else distFW[i, j] = matriceAdjacence[i, j];
+                    }
+                    if (matriceAdjacence[i, j] != 0) nextFW[i, j] = j;
+                    else nextFW[i, j] = -1;
+                }
+            }
+
+            for (int k = 0; k < n; k++)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    for (int j = 0; j < n; j++)
+                    {
+                        if (distFW[i, k] + distFW[k, j] < distFW[i, j])
+                        {
+                            distFW[i, j] = distFW[i, k] + distFW[k, j];
+                            nextFW[i, j] = nextFW[i, k];
+                        }
+                    }
+                }
+            }
+
+            if (distFW[startId, endId] >= 100000000) return new List<int>();
+
+            var path = new List<int>();
+            int current = startId;
+            while (current != endId)
+            {
+                path.Add(current);
+                current = nextFW[current, endId];
+                if (current == -1) break;
+            }
+            path.Add(endId);
+
+            return path;
+        }
     }
 }
