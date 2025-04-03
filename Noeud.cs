@@ -9,8 +9,8 @@ namespace Projet_PSI
     public class Noeud<T>
     {
         private int id;
-        private T data;// Données de type T associées au nœud
-        private List<Noeud<T>> voisins;// Liste des nœuds voisins
+        private T data;//Données de type T associées au nœud
+        private List<Noeud<T>> voisins;//Liste des nœuds voisins
 
         public int Id
         {

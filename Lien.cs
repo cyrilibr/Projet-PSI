@@ -8,9 +8,9 @@ namespace Projet_PSI
 {
     public class Lien<T>
     {
-        private Noeud<T> noeud1;  // Premier nœud du lien
-        private Noeud<T> noeud2;  // Deuxième nœud du lien
-        private int poids;        // Poids du lien (coût, distance, etc.)
+        private Noeud<T> noeud1;//Premier nœud du lien
+        private Noeud<T> noeud2;//Deuxième nœud du lien
+        private int poids;//Poids du lien (coût, distance, etc.)
 
         /// <summary>
         /// Obtient le premier nœud du lien.

@@ -8,9 +8,9 @@ namespace Projet_PSI
 {
     public class FenetreGraphe<T> : Form
     {
-        private Graphe<T> graphe;// Instance du graphe générique à afficher
-        private Dictionary<int, Point> positions;// Dictionnaire des positions aléatoires des nœuds
-        private int rayon = 20;// Rayon des cercles représentant les nœuds
+        private Graphe<T> graphe;//Instance du graphe générique à afficher
+        private Dictionary<int, Point> positions;//Dictionnaire des positions aléatoires des nœuds
+        private int rayon = 20;//Rayon des cercles représentant les nœuds
 
         private Button btnListeAdjacence;
         private Button btnMatriceAdjacence;
@@ -27,7 +27,8 @@ namespace Projet_PSI
         {
             this.graphe = graphe;
             this.Text = "Visualisation du Graphe";
-            this.Size = new Size(800, 600);
+
+            this.WindowState = FormWindowState.Maximized;
 
             this.Paint += DessinerGraphe;
 
@@ -39,45 +40,31 @@ namespace Projet_PSI
         }
 
         /// <summary>
-        /// Crée et positionne les différents boutons sur la fenêtre.
+        /// Crée et positionne les différents boutons sur la fenêtre (en ligne, en haut à gauche).
         /// </summary>
         private void InitialiserBoutons()
         {
-            btnListeAdjacence = new Button();
-            btnListeAdjacence.Text = "Liste d'adjacence";
-            btnListeAdjacence.Location = new Point(10, 10);
-            btnListeAdjacence.Click += BoutonListeAdjacence_Click;
-            this.Controls.Add(btnListeAdjacence);
+            int x = 10;
+            int y = 10;
 
-            btnMatriceAdjacence = new Button();
-            btnMatriceAdjacence.Text = "Matrice d'adjacence";
-            btnMatriceAdjacence.Location = new Point(50, 10);
-            btnMatriceAdjacence.Click += BoutonMatriceAdjacence_Click;
-            this.Controls.Add(btnMatriceAdjacence);
+            Button CreerBouton(string texte, EventHandler onClick)
+            {
+                var btn = new Button();
+                btn.Text = texte;
+                btn.Location = new Point(x, y);
+                btn.Click += onClick;
+                this.Controls.Add(btn);
 
-            btnBFS = new Button();
-            btnBFS.Text = "BFS (depuis 0)";
-            btnBFS.Location = new Point(90, 10);
-            btnBFS.Click += BoutonBFS_Click;
-            this.Controls.Add(btnBFS);
+                x += 130;
+                return btn;
+            }
 
-            btnDFS = new Button();
-            btnDFS.Text = "DFS (depuis 0)";
-            btnDFS.Location = new Point(130, 10);
-            btnDFS.Click += BoutonDFS_Click;
-            this.Controls.Add(btnDFS);
-
-            btnConnexe = new Button();
-            btnConnexe.Text = "Est connexe ?";
-            btnConnexe.Location = new Point(170, 10);
-            btnConnexe.Click += BoutonConnexe_Click;
-            this.Controls.Add(btnConnexe);
-
-            btnCycle = new Button();
-            btnCycle.Text = "Contient un cycle ?";
-            btnCycle.Location = new Point(210, 10);
-            btnCycle.Click += BoutonCycle_Click;
-            this.Controls.Add(btnCycle);
+            btnListeAdjacence = CreerBouton("Liste d'adjacence", BoutonListeAdjacence_Click);
+            btnMatriceAdjacence = CreerBouton("Matrice d'adjacence", BoutonMatriceAdjacence_Click);
+            btnBFS = CreerBouton("BFS (depuis 0)", BoutonBFS_Click);
+            btnDFS = CreerBouton("DFS (depuis 0)", BoutonDFS_Click);
+            btnConnexe = CreerBouton("Est connexe ?", BoutonConnexe_Click);
+            btnCycle = CreerBouton("Contient un cycle ?", BoutonCycle_Click);
         }
 
         /// <summary>
@@ -90,7 +77,7 @@ namespace Projet_PSI
 
             foreach (var noeud in graphe.Noeuds.Values)
             {
-                positions[noeud.Id] = new Point(rand.Next(100, 700), rand.Next(100, 500));
+                positions[noeud.Id] = new Point(rand.Next(100, 1500), rand.Next(100, 900));
             }
         }
 
@@ -135,16 +122,15 @@ namespace Projet_PSI
                 if (zone.Contains(e.Location))
                 {
                     string affichageData = noeud.Data?.ToString() ?? "null";
-                    string message = $"ID: {noeud.Id}\nData (T): {affichageData}\nLiens: ";
-
                     var liensDuNoeud = graphe.Liens
                         .Where(l => l.Noeud1.Id == noeud.Id || l.Noeud2.Id == noeud.Id)
                         .Select(l => l.Noeud1.Id == noeud.Id ? l.Noeud2.Id : l.Noeud1.Id);
 
-                    message += string.Join(", ", liensDuNoeud);
+                    string message = $"ID: {noeud.Id}\r\n" +
+                                     $"Data (T): {affichageData}\r\n" +
+                                     $"Liens: {string.Join(", ", liensDuNoeud)}";
 
-                    MessageBox.Show(message, "Informations sur le sommet",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    AfficherEnPleinEcran("Informations sur le sommet", message);
                     break;
                 }
             }
@@ -154,42 +140,65 @@ namespace Projet_PSI
 
         private void BoutonListeAdjacence_Click(object sender, EventArgs e)
         {
-            string msg = "Liste d'adjacence :\n" + graphe.AfficherListeAdjacence();
-            MessageBox.Show(msg, "Liste d'adjacence", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string info = "Liste d'adjacence :\r\n" + graphe.AfficherListeAdjacence();
+            AfficherEnPleinEcran("Liste d'adjacence", info);
         }
 
         private void BoutonMatriceAdjacence_Click(object sender, EventArgs e)
         {
-            string msg = "Matrice d'adjacence :\n" + graphe.AfficherMatriceAdjacence();
-            MessageBox.Show(msg, "Matrice d'adjacence", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string info = "Matrice d'adjacence :\r\n" + graphe.AfficherMatriceAdjacence();
+            AfficherEnPleinEcran("Matrice d'adjacence", info);
         }
 
         private void BoutonBFS_Click(object sender, EventArgs e)
         {
-            string msg = "Parcours BFS (depuis le nœud 0) :\n" + graphe.ParcoursLargeur(0);
-            MessageBox.Show(msg, "BFS", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string info = "Parcours BFS (depuis le nœud 1) :\r\n" + graphe.ParcoursLargeur(1);
+            AfficherEnPleinEcran("BFS", info);
         }
 
         private void BoutonDFS_Click(object sender, EventArgs e)
         {
-            string msg = "Parcours DFS (depuis le nœud 0) :\n" + graphe.ParcoursProfondeur(0);
-            MessageBox.Show(msg, "DFS", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string info = "Parcours DFS (depuis le nœud 1) :\r\n" + graphe.ParcoursProfondeur(1);
+            AfficherEnPleinEcran("DFS", info);
         }
 
         private void BoutonConnexe_Click(object sender, EventArgs e)
         {
-            bool connexe = graphe.EstConnexe();
-            string msg = $"Le graphe est-il connexe ? {connexe}";
-            MessageBox.Show(msg, "Est Connexe ?", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            bool estConnexe = graphe.EstConnexe();
+            string info = $"Le graphe est-il connexe ? {estConnexe}";
+            AfficherEnPleinEcran("Est Connexe ?", info);
         }
 
         private void BoutonCycle_Click(object sender, EventArgs e)
         {
             bool cycle = graphe.ContientCycle();
-            string msg = $"Le graphe contient-il un cycle ? {cycle}";
-            MessageBox.Show(msg, "Contient un cycle ?", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string info = $"Le graphe contient-il un cycle ? {cycle}";
+            AfficherEnPleinEcran("Contient un cycle ?", info);
         }
 
         #endregion
+
+        /// <summary>
+        /// Crée et affiche en plein écran une nouvelle fenêtre
+        /// contenant le texte passé en paramètre.
+        /// </summary>
+        /// <param name="titre">Titre de la nouvelle fenêtre.</param>
+        /// <param name="contenu">Texte à afficher.</param>
+        private void AfficherEnPleinEcran(string titre, string contenu)
+        {
+            Form fenetre = new Form();
+            fenetre.Text = titre;
+            fenetre.WindowState = FormWindowState.Maximized;
+
+            TextBox textBox = new TextBox();
+            textBox.Multiline = true;
+            textBox.Dock = DockStyle.Fill;
+            textBox.ReadOnly = true;
+            textBox.ScrollBars = ScrollBars.Both;
+            textBox.Text = contenu;
+
+            fenetre.Controls.Add(textBox);
+            fenetre.ShowDialog();
+        }
     }
 }
