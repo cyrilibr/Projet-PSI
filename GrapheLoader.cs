@@ -1,5 +1,6 @@
-﻿using MySql.Data.MySqlClient;
-using Projet_PSI.Utils;
+﻿using Projet_PSI.Utils;
+using System;
+using System.Collections.Generic;
 
 namespace Projet_PSI
 {
@@ -7,9 +8,10 @@ namespace Projet_PSI
     {
         public static Graphe<Station> ChargerDepuisBDD()
         {
-            Graphe<Station> graphe = new Graphe<Station>();
-            Dictionary<int, Station> stations = new Dictionary<int, Station>();
+            var graphe = new Graphe<Station>(1000); // taille arbitraire
+            var stations = new Dictionary<int, Station>();
 
+            // Charger les stations
             using (var reader = Bdd.Lire("SELECT IDStation, LibelleStation, Latitude, Longitude FROM stations_metro"))
             {
                 while (reader.Read())
@@ -19,27 +21,34 @@ namespace Projet_PSI
                     double lat = reader.GetDouble("Latitude");
                     double lon = reader.GetDouble("Longitude");
 
-                    Station s = new Station { ID = id, Libelle = libelle, Latitude = lat, Longitude = lon };
-                    stations[id] = s;
-                    graphe.AjouterNoeud(new Noeud<Station>(id, s));
+                    var station = new Station
+                    {
+                        ID = id,
+                        Libelle = libelle,
+                        Latitude = lat,
+                        Longitude = lon
+                    };
+
+                    graphe.AjouterNoeud(id, station);
+                    stations[id] = station;
                 }
                 reader.Close();
             }
 
-            using (var reader = Bdd.Lire("SELECT IDStation, Precedent, Suivant, TempsChangement FROM stations_metro"))
+            // Charger les liens (liaisons entre stations)
+            using (var reader = Bdd.Lire("SELECT IDStation, Precedent, Suivant FROM stations_metro"))
             {
                 while (reader.Read())
                 {
                     int id = reader.GetInt32("IDStation");
-                    int? prec = reader.IsDBNull(reader.GetOrdinal("Precedent")) ? null : reader.GetInt32("Precedent");
-                    int? suiv = reader.IsDBNull(reader.GetOrdinal("Suivant")) ? null : reader.GetInt32("Suivant");
-                    int poids = reader.IsDBNull(reader.GetOrdinal("TempsChangement")) ? 1 : reader.GetInt32("TempsChangement");
+                    int precedent = reader.IsDBNull(reader.GetOrdinal("Precedent")) ? -1 : reader.GetInt32("Precedent");
+                    int suivant = reader.IsDBNull(reader.GetOrdinal("Suivant")) ? -1 : reader.GetInt32("Suivant");
 
-                    if (prec.HasValue && stations.ContainsKey(prec.Value))
-                        graphe.AjouterLien(prec.Value, id, poids);
+                    if (precedent != -1 && stations.ContainsKey(precedent) && stations.ContainsKey(id))
+                        graphe.AjouterLien(precedent, id);
 
-                    if (suiv.HasValue && stations.ContainsKey(suiv.Value))
-                        graphe.AjouterLien(id, suiv.Value, poids);
+                    if (suivant != -1 && stations.ContainsKey(suivant) && stations.ContainsKey(id))
+                        graphe.AjouterLien(id, suivant);
                 }
                 reader.Close();
             }

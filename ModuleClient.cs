@@ -47,7 +47,7 @@ namespace Projet_PSI.Modules
             Console.Clear();
             Console.WriteLine("--- Liste des Clients ---\n");
             string query = $@"
-                SELECT T.NOMT, T.PRENOMT, T.ADR, C.MontantTotalAchats 
+                SELECT T.ID, T.NOMT, T.PRENOMT, T.ADR, C.MontantTotalAchats 
                 FROM Client C 
                 JOIN Tier T ON C.ID = T.ID 
                 {orderClause};";
@@ -55,12 +55,13 @@ namespace Projet_PSI.Modules
             using var reader = Bdd.Lire(query);
             while (reader.Read())
             {
+                int id = reader.GetInt32("ID");
                 string nom = reader.GetString("NOMT");
                 string prenom = reader.GetString("PRENOMT");
                 string adresse = reader.GetString("ADR");
                 decimal total = reader.GetDecimal("MontantTotalAchats");
 
-                Console.WriteLine($"{prenom} {nom} - {adresse} - Total Achats: {total:C}");
+                Console.WriteLine($"{prenom} {nom} (ID: {id}) - {adresse} - Total Achats: {total:C}");
             }
             reader.Close();
         }
@@ -69,7 +70,6 @@ namespace Projet_PSI.Modules
         {
             Console.Clear();
             Console.WriteLine("--- Ajout d'un nouveau client ---");
-            Console.Write("ID unique : "); string id = Console.ReadLine();
             Console.Write("Mot de passe : "); string mdp = Console.ReadLine();
             Console.Write("Nom : "); string nom = Console.ReadLine();
             Console.Write("Prénom : "); string prenom = Console.ReadLine();
@@ -82,16 +82,26 @@ namespace Projet_PSI.Modules
             Console.Write("Type : "); string type = Console.ReadLine();
             Console.Write("Montant total des achats : "); string total = Console.ReadLine();
 
-            string insertTier = $@"
-                INSERT INTO Tier VALUES ('{id}', '{mdp}', '{nom}', '{prenom}', '{adr}', '{cp}', '{ville}', '{email}', '{tel}', FALSE, '');";
-            string insertClient = $@"
-                INSERT INTO Client VALUES ('{id}', '{note}', '{type}', {total}, '');";
-
             try
             {
+                string insertTier = $@"
+                    INSERT INTO Tier (MDP, NOMT, PRENOMT, ADR, CODEPOSTAL, VILLE, EMAIL, TEL, Radiation, Retour)
+                    VALUES ('{mdp}', '{nom}', '{prenom}', '{adr}', '{cp}', '{ville}', '{email}', '{tel}', FALSE, '');";
                 Bdd.Executer(insertTier);
+
+                int idGenere = 0;
+                using (var reader = Bdd.Lire("SELECT LAST_INSERT_ID() AS ID"))
+                {
+                    if (reader.Read())
+                        idGenere = reader.GetInt32("ID");
+                    reader.Close();
+                }
+
+                string insertClient = $@"
+                    INSERT INTO Client VALUES ('{idGenere}', '{note}', '{type}', {total}, '');";
+
                 Bdd.Executer(insertClient);
-                Console.WriteLine("Client ajouté avec succès.");
+                Console.WriteLine("Client ajouté avec succès (ID: " + idGenere + ")");
             }
             catch (Exception ex)
             {

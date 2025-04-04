@@ -1,172 +1,205 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Projet_PSI
 {
     public class Graphe<T>
     {
-        public Dictionary<int, Noeud<T>> Noeuds { get; private set; }
-        public List<Lien<T>> Liens { get; private set; }
-        private Dictionary<int, Dictionary<int, int>> adjacence;
+        private Dictionary<int, Noeud<T>> noeuds;
+        private List<Lien<T>> liens;
+        private int[,] matriceAdjacence;
+        private int taille;
 
-        public Graphe()
+        public Dictionary<int, Noeud<T>> Noeuds => noeuds;
+        public List<Lien<T>> Liens => liens;
+
+        public Graphe(int taille)
         {
-            Noeuds = new Dictionary<int, Noeud<T>>();
-            Liens = new List<Lien<T>>();
-            adjacence = new Dictionary<int, Dictionary<int, int>>();
+            this.taille = taille;
+            noeuds = new Dictionary<int, Noeud<T>>();
+            liens = new List<Lien<T>>();
+            matriceAdjacence = new int[taille, taille];
         }
 
-        public void AjouterNoeud(Noeud<T> noeud)
+        public void AjouterNoeud(int id, T data)
         {
-            if (!Noeuds.ContainsKey(noeud.Id))
-            {
-                Noeuds[noeud.Id] = noeud;
-                adjacence[noeud.Id] = new Dictionary<int, int>();
-            }
+            if (!noeuds.ContainsKey(id))
+                noeuds[id] = new Noeud<T>(id, data);
         }
 
-        public void AjouterLien(int id1, int id2, int poids = 1, bool bidirectionnel = false)
+        public void AjouterLien(int id1, int id2, int poids = 1)
         {
-            if (Noeuds.ContainsKey(id1) && Noeuds.ContainsKey(id2))
+            if (noeuds.ContainsKey(id1) && noeuds.ContainsKey(id2))
             {
-                Noeud<T> n1 = Noeuds[id1];
-                Noeud<T> n2 = Noeuds[id2];
-                Liens.Add(new Lien<T>(n1, n2, poids, bidirectionnel));
+                var n1 = noeuds[id1];
+                var n2 = noeuds[id2];
+                liens.Add(new Lien<T>(n1, n2, poids));
                 n1.AjouterVoisin(n2);
-                if (bidirectionnel) n2.AjouterVoisin(n1);
-                adjacence[id1][id2] = poids;
-                if (bidirectionnel && !adjacence[id2].ContainsKey(id1))
-                    adjacence[id2][id1] = poids;
+                n2.AjouterVoisin(n1);
+                matriceAdjacence[id1, id2] = poids;
+                matriceAdjacence[id2, id1] = poids;
             }
         }
+
+        public bool ExisteLien(int id1, int id2) => matriceAdjacence[id1, id2] != 0;
 
         public string AfficherListeAdjacence()
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (var noeud in Noeuds.Values)
-            {
-                sb.AppendLine($"{noeud.Data} -> {string.Join(", ", noeud.Voisins.Select(v => v.Data.ToString()))}");
-            }
-            return sb.ToString();
+            return string.Join("\n", noeuds.Select(kvp => $"{kvp.Value.Data} -> {string.Join(", ", kvp.Value.Voisins.Select(v => v.Data))}"));
         }
 
-        public bool ExisteLien(int id1, int id2)
+        public string AfficherMatriceAdjacence()
         {
-            return adjacence.ContainsKey(id1) && adjacence[id1].ContainsKey(id2);
+            var result = "";
+            for (int i = 0; i < taille; i++)
+            {
+                for (int j = 0; j < taille; j++)
+                    result += matriceAdjacence[i, j] + " ";
+                result += "\n";
+            }
+            return result;
         }
 
         public bool EstConnexe()
         {
-            if (Noeuds.Count == 0) return false;
-            HashSet<int> visite = new HashSet<int>();
-            Queue<int> queue = new Queue<int>();
-            queue.Enqueue(Noeuds.Keys.First());
-            while (queue.Count > 0)
+            if (noeuds.Count == 0) return false;
+            var visite = new HashSet<int>();
+            var file = new Queue<int>();
+            var depart = noeuds.Keys.First();
+            file.Enqueue(depart);
+            visite.Add(depart);
+
+            while (file.Count > 0)
             {
-                int courant = queue.Dequeue();
-                if (!visite.Contains(courant))
+                var courant = file.Dequeue();
+                foreach (var voisin in noeuds[courant].Voisins)
                 {
-                    visite.Add(courant);
-                    foreach (var voisin in Noeuds[courant].Voisins)
-                        queue.Enqueue(voisin.Id);
+                    if (visite.Add(voisin.Id))
+                        file.Enqueue(voisin.Id);
                 }
             }
-            return visite.Count == Noeuds.Count;
+            return visite.Count == noeuds.Count;
         }
 
-        public Dictionary<int, int> Dijkstra(int idDepart)
+        public bool ContientCycle()
         {
-            Dictionary<int, int> distances = Noeuds.Keys.ToDictionary(k => k, k => int.MaxValue);
-            distances[idDepart] = 0;
-            var pq = new PriorityQueue<int, int>();
-            pq.Enqueue(idDepart, 0);
-            while (pq.Count > 0)
+            var visite = new HashSet<int>();
+            foreach (var id in noeuds.Keys)
             {
-                int courant = pq.Dequeue();
-                foreach (var voisin in adjacence[courant])
+                if (!visite.Contains(id) && DFS_Cycle(id, visite, -1))
+                    return true;
+            }
+            return false;
+        }
+
+        private bool DFS_Cycle(int id, HashSet<int> visite, int parent)
+        {
+            visite.Add(id);
+            foreach (var voisin in noeuds[id].Voisins)
+            {
+                if (!visite.Contains(voisin.Id))
                 {
-                    int alt = distances[courant] + voisin.Value;
-                    if (alt < distances[voisin.Key])
+                    if (DFS_Cycle(voisin.Id, visite, id)) return true;
+                }
+                else if (voisin.Id != parent)
+                    return true;
+            }
+            return false;
+        }
+
+        public List<int> CheminDijkstra(int startId, int endId)
+        {
+            var dist = noeuds.ToDictionary(n => n.Key, _ => int.MaxValue);
+            var prev = noeuds.ToDictionary(n => n.Key, _ => (int?)null);
+            var nonVisites = new HashSet<int>(noeuds.Keys);
+            dist[startId] = 0;
+
+            while (nonVisites.Count > 0)
+            {
+                int u = nonVisites.OrderBy(id => dist[id]).FirstOrDefault();
+                nonVisites.Remove(u);
+                if (u == endId || dist[u] == int.MaxValue) break;
+
+                foreach (var voisin in noeuds[u].Voisins)
+                {
+                    int alt = dist[u] + matriceAdjacence[u, voisin.Id];
+                    if (alt < dist[voisin.Id])
                     {
-                        distances[voisin.Key] = alt;
-                        pq.Enqueue(voisin.Key, alt);
+                        dist[voisin.Id] = alt;
+                        prev[voisin.Id] = u;
                     }
                 }
             }
-            return distances;
+
+            var chemin = new List<int>();
+            for (int? at = endId; at != null; at = prev[at.Value])
+                chemin.Add(at.Value);
+            chemin.Reverse();
+            return dist[endId] == int.MaxValue ? new List<int>() : chemin;
         }
 
-        public Dictionary<int, int> CalculerPredecesseurs(int idDepart)
+        public List<int> CheminBellmanFord(int startId, int endId)
         {
-            var distances = Noeuds.Keys.ToDictionary(k => k, k => int.MaxValue);
-            var predecesseurs = new Dictionary<int, int>();
-            distances[idDepart] = 0;
-            var pq = new PriorityQueue<int, int>();
-            pq.Enqueue(idDepart, 0);
+            var dist = noeuds.ToDictionary(n => n.Key, _ => int.MaxValue);
+            var prev = noeuds.ToDictionary(n => n.Key, _ => (int?)null);
+            dist[startId] = 0;
 
-            while (pq.Count > 0)
+            for (int i = 0; i < noeuds.Count - 1; i++)
             {
-                int courant = pq.Dequeue();
-                foreach (var voisin in adjacence[courant])
+                foreach (var lien in liens)
                 {
-                    int alt = distances[courant] + voisin.Value;
-                    if (alt < distances[voisin.Key])
+                    int u = lien.Noeud1.Id, v = lien.Noeud2.Id, w = lien.Poids;
+                    if (dist[u] != int.MaxValue && dist[u] + w < dist[v])
                     {
-                        distances[voisin.Key] = alt;
-                        predecesseurs[voisin.Key] = courant;
-                        pq.Enqueue(voisin.Key, alt);
+                        dist[v] = dist[u] + w;
+                        prev[v] = u;
+                    }
+                    if (dist[v] != int.MaxValue && dist[v] + w < dist[u])
+                    {
+                        dist[u] = dist[v] + w;
+                        prev[u] = v;
                     }
                 }
             }
-            return predecesseurs;
+
+            var chemin = new List<int>();
+            for (int? at = endId; at != null; at = prev[at.Value])
+                chemin.Add(at.Value);
+            chemin.Reverse();
+            return dist[endId] == int.MaxValue ? new List<int>() : chemin;
         }
 
-        public Dictionary<int, int> BellmanFord(int idDepart)
+        public List<int> CheminFloydWarshall(int startId, int endId)
         {
-            Dictionary<int, int> dist = Noeuds.Keys.ToDictionary(k => k, k => int.MaxValue);
-            dist[idDepart] = 0;
-            for (int i = 0; i < Noeuds.Count - 1; i++)
-            {
-                foreach (var lien in Liens)
+            int n = taille;
+            var dist = new int[n, n];
+            var next = new int[n, n];
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
                 {
-                    int u = lien.Noeud1.Id;
-                    int v = lien.Noeud2.Id;
-                    if (dist[u] != int.MaxValue && dist[u] + lien.Poids < dist[v])
-                        dist[v] = dist[u] + lien.Poids;
+                    dist[i, j] = i == j ? 0 : matriceAdjacence[i, j] == 0 ? int.MaxValue / 2 : matriceAdjacence[i, j];
+                    next[i, j] = matriceAdjacence[i, j] != 0 ? j : -1;
                 }
-            }
-            foreach (var lien in Liens)
-            {
-                int u = lien.Noeud1.Id;
-                int v = lien.Noeud2.Id;
-                if (dist[u] != int.MaxValue && dist[u] + lien.Poids < dist[v])
-                    throw new Exception("Cycle négatif détecté");
-            }
-            return dist;
-        }
 
-        public Dictionary<int, Dictionary<int, int>> FloydWarshall()
-        {
-            var dist = new Dictionary<int, Dictionary<int, int>>();
-            foreach (var i in Noeuds.Keys)
+            for (int k = 0; k < n; k++)
+                for (int i = 0; i < n; i++)
+                    for (int j = 0; j < n; j++)
+                        if (dist[i, k] + dist[k, j] < dist[i, j])
+                        {
+                            dist[i, j] = dist[i, k] + dist[k, j];
+                            next[i, j] = next[i, k];
+                        }
+
+            if (next[startId, endId] == -1) return new List<int>();
+            var chemin = new List<int> { startId };
+            while (startId != endId)
             {
-                dist[i] = new Dictionary<int, int>();
-                foreach (var j in Noeuds.Keys)
-                {
-                    if (i == j) dist[i][j] = 0;
-                    else if (adjacence.ContainsKey(i) && adjacence[i].ContainsKey(j))
-                        dist[i][j] = adjacence[i][j];
-                    else dist[i][j] = int.MaxValue;
-                }
+                startId = next[startId, endId];
+                if (startId == -1) break;
+                chemin.Add(startId);
             }
-            foreach (var k in Noeuds.Keys)
-                foreach (var i in Noeuds.Keys)
-                    foreach (var j in Noeuds.Keys)
-                        if (dist[i][k] != int.MaxValue && dist[k][j] != int.MaxValue && dist[i][j] > dist[i][k] + dist[k][j])
-                            dist[i][j] = dist[i][k] + dist[k][j];
-            return dist;
+            return chemin;
         }
     }
 }

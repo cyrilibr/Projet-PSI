@@ -14,8 +14,7 @@ namespace Projet_PSI.Modules
                 Console.WriteLine("--- Module Commande ---");
                 Console.WriteLine("1. Créer une nouvelle commande");
                 Console.WriteLine("2. Modifier une commande");
-                Console.WriteLine("3. Calculer le prix d'une commande");
-                Console.WriteLine("4. Afficher chemin de livraison (trajet)");
+                Console.WriteLine("3. Afficher chemin de livraison (trajet)");
                 Console.WriteLine("0. Retour menu principal");
                 Console.Write("Choix : ");
                 string choix = Console.ReadLine();
@@ -24,8 +23,7 @@ namespace Projet_PSI.Modules
                 {
                     case "1": CreerCommande(); break;
                     case "2": ModifierCommande(); break;
-                    case "3": CalculerPrixCommande(); break;
-                    case "4": AfficherTrajet(); break;
+                    case "3": AfficherTrajet(); break;
                     case "0": retour = true; break;
                     default: Console.WriteLine("Choix invalide."); break;
                 }
@@ -48,14 +46,38 @@ namespace Projet_PSI.Modules
             Console.Write("Adresse de départ : "); string adresseCuisinier = Console.ReadLine();
             Console.Write("Date de livraison souhaitée (yyyy-mm-dd hh:mm:ss) : "); string date = Console.ReadLine();
             Console.Write("Frais de livraison : "); string frais = Console.ReadLine();
-            Console.Write("Prix total estimé : "); string prix = Console.ReadLine();
+
+            decimal prixTotal = 0;
+            string metsChoisis = "";
+
+            Console.WriteLine("Ajoutez des mets à la commande. Tapez 'fin' pour terminer.");
+            while (true)
+            {
+                Console.Write("ID du mets : ");
+                string idMets = Console.ReadLine();
+                if (idMets.ToLower() == "fin") break;
+
+                Console.Write("Quantité : ");
+                if (!int.TryParse(Console.ReadLine(), out int quantite)) continue;
+
+                string prixReq = $"SELECT PrixParPersonne FROM Mets WHERE ID = '{idMets}'";
+                using var r = Bdd.Lire(prixReq);
+                if (r.Read())
+                {
+                    decimal prixMets = r.GetDecimal("PrixParPersonne");
+                    prixTotal += prixMets * quantite;
+                    metsChoisis += $"INSERT INTO Contient VALUES ('{idMets}', @IDCMD, {quantite});\n";
+                }
+                r.Close();
+            }
+
+            prixTotal += Convert.ToDecimal(frais);
 
             try
             {
                 string insertCmd = $@"
                     INSERT INTO CommandeLivraison (NumeroDeCommande, DateDeLivraisonSouhaitee, FraisDeLivraison, Prix, EtatdeLaCommande, ID_Cuisinier)
-                    VALUES (NULL, '{date}', {frais}, {prix}, 'En préparation', '{idCuisinier}');";
-
+                    VALUES (NULL, '{date}', {frais}, {prixTotal}, 'En préparation', '{idCuisinier}');";
                 Bdd.Executer(insertCmd);
 
                 int livraisonID = 0;
@@ -63,11 +85,18 @@ namespace Projet_PSI.Modules
                 if (r.Read()) livraisonID = r.GetInt32("MaxID");
                 r.Close();
 
-                string insertRecoit = $@"INSERT INTO Recoit VALUES ('{idClient}', {livraisonID})";
-                string insertTrajet = $@"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison)
-                                         VALUES ('{adresseClient}', '{adresseCuisinier}', 0, '00:00:00', '', {livraisonID})";
-                Bdd.Executer(insertRecoit);
-                Bdd.Executer(insertTrajet);
+                Bdd.Executer($"INSERT INTO Recoit VALUES ('{idClient}', {livraisonID})");
+                Bdd.Executer($"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison) VALUES ('{adresseClient}', '{adresseCuisinier}', 0, '00:00:00', '', {livraisonID})");
+
+                foreach (string ligne in metsChoisis.Split('\n'))
+                {
+                    if (!string.IsNullOrWhiteSpace(ligne))
+                    {
+                        string requete = ligne.Replace("@IDCMD", livraisonID.ToString());
+                        Bdd.Executer(requete);
+                    }
+                }
+
                 Console.WriteLine("Commande créée avec succès.");
             }
             catch (Exception ex)
@@ -91,26 +120,6 @@ namespace Projet_PSI.Modules
             {
                 Console.WriteLine("Erreur : " + ex.Message);
             }
-        }
-
-        private static void CalculerPrixCommande()
-        {
-            Console.Clear();
-            Console.WriteLine("--- Calcul du prix d'une commande ---");
-            Console.Write("Numéro de livraison : "); string num = Console.ReadLine();
-            string req = $"SELECT Prix FROM CommandeLivraison WHERE NumerodeLivraison = {num}";
-
-            using var r = Bdd.Lire(req);
-            if (r.Read())
-            {
-                decimal prix = r.GetDecimal("Prix");
-                Console.WriteLine($"Prix de la commande : {prix:C}");
-            }
-            else
-            {
-                Console.WriteLine("Commande non trouvée.");
-            }
-            r.Close();
         }
 
         private static void AfficherTrajet()

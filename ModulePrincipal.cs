@@ -3,20 +3,20 @@ using Projet_PSI.Modules;
 
 namespace Projet_PSI
 {
-    public static class MenuPrincipal
+    public static class ModulePrincipal
     {
-        public static void Lancer()
+        public static void Lancer(Graphe<Station> graphe)
         {
             bool quitter = false;
             while (!quitter)
             {
                 Console.Clear();
                 Console.WriteLine("=== MENU PRINCIPAL ===");
-                Console.WriteLine("1. Module Client");
-                Console.WriteLine("2. Module Cuisinier");
-                Console.WriteLine("3. Module Commande");
-                Console.WriteLine("4. Module Chemin");
-                Console.WriteLine("5. Module Statistiques");
+                Console.WriteLine("1. Gestion des clients");
+                Console.WriteLine("2. Gestion des cuisiniers");
+                Console.WriteLine("3. Gestion des commandes");
+                Console.WriteLine("4. Chemin de livraison");
+                Console.WriteLine("5. Statistiques générales");
                 Console.WriteLine("0. Quitter");
                 Console.Write("Choix : ");
                 string choix = Console.ReadLine();
@@ -26,20 +26,15 @@ namespace Projet_PSI
                     case "1": ModuleClient.Lancer(); break;
                     case "2": ModuleCuisinier.Lancer(); break;
                     case "3": ModuleCommande.Lancer(); break;
-                    case "4": ModuleChemin.Lancer(); break;
+                    case "4": ModuleChemin.Lancer(graphe); break;
                     case "5": ModuleStatistiques.Lancer(); break;
                     case "0": quitter = true; break;
-                    default: Console.WriteLine("Choix invalide."); break;
-                }
-
-                if (!quitter)
-                {
-                    Console.WriteLine("\nAppuyez sur une touche pour continuer...");
-                    Console.ReadKey();
+                    default:
+                        Console.WriteLine("Choix invalide. Appuyez sur une touche pour réessayer.");
+                        Console.ReadKey();
+                        break;
                 }
             }
-
-            Console.WriteLine("\nMerci d'avoir utilisé l'application. Au revoir !");
         }
     }
 }

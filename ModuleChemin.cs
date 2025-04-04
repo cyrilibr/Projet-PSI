@@ -1,82 +1,58 @@
 ﻿using Projet_PSI.Utils;
-using Projet_PSI;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Projet_PSI.Modules
 {
     public static class ModuleChemin
     {
-        public static void Lancer()
+        public static void Lancer(Graphe<Station> graphe)
         {
             Console.Clear();
-            Console.WriteLine("--- Chemin le plus court entre deux utilisateurs ---");
-            Console.Write("ID de l'expéditeur (client ou cuisinier) : "); string idExpediteur = Console.ReadLine();
-            Console.Write("ID du destinataire (client ou cuisinier) : "); string idDestinataire = Console.ReadLine();
+            Console.WriteLine("--- Calcul de Chemin de Livraison ---\n");
 
-            try
+            Console.Write("ID du cuisinier : ");
+            string idCuisinier = Console.ReadLine();
+
+            Console.Write("ID du client : ");
+            string idClient = Console.ReadLine();
+
+            string villeCuisinier = ObtenirVille(idCuisinier);
+            string villeClient = ObtenirVille(idClient);
+
+            if (villeCuisinier == null || villeClient == null)
             {
-                string villeExp = ObtenirVille(idExpediteur);
-                string villeDest = ObtenirVille(idDestinataire);
-
-                if (villeExp == null || villeDest == null)
-                {
-                    Console.WriteLine("Impossible de récupérer les villes.");
-                    return;
-                }
-
-                int idStationDep = TrouverStationParVille(villeExp);
-                int idStationArr = TrouverStationParVille(villeDest);
-
-                if (idStationDep == -1 || idStationArr == -1)
-                {
-                    Console.WriteLine("Aucune station trouvée correspondant à la ville.");
-                    return;
-                }
-
-                var graphe = GrapheLoader.ChargerDepuisBDD();
-                var distances = graphe.Dijkstra(idStationDep);
-                var predecesseurs = graphe.CalculerPredecesseurs(idStationDep);
-
-                Console.WriteLine($"\nDistance minimale entre stations : {distances[idStationArr]} unités de temps\n");
-
-                List<string> chemin = new List<string>();
-                int courant = idStationArr;
-                while (courant != idStationDep && predecesseurs.ContainsKey(courant))
-                {
-                    chemin.Insert(0, graphe.Noeuds[courant].Data.Libelle);
-                    courant = predecesseurs[courant];
-                }
-                chemin.Insert(0, graphe.Noeuds[idStationDep].Data.Libelle);
-
-                Console.WriteLine("Stations parcourues :");
-                foreach (var nom in chemin)
-                    Console.WriteLine(" - " + nom);
-
-                string cheminStr = string.Join(" -> ", chemin);
-                double tempsEstime = distances[idStationArr];
-                double distanceKm = chemin.Count * 0.5;
-
-                Console.Write("\nNuméro de livraison à mettre à jour : ");
-                if (int.TryParse(Console.ReadLine(), out int livraisonID))
-                {
-                    string req = $@"
-                        UPDATE Trajet 
-                        SET Distance = {distanceKm}, TempsEstime = SEC_TO_TIME({tempsEstime * 60}), CheminPris = '{cheminStr}' 
-                        WHERE NumerodeLivraison = {livraisonID};";
-
-                    Bdd.Executer(req);
-                    Console.WriteLine("\nTrajet mis à jour dans la base de données.");
-                }
-                else
-                {
-                    Console.WriteLine("Entrée invalide pour le numéro de livraison.");
-                }
+                Console.WriteLine("Impossible de récupérer les villes associées.");
+                Console.ReadKey();
+                return;
             }
-            catch (Exception ex)
+
+            int idStationDep = TrouverStationParVille(villeCuisinier);
+            int idStationArr = TrouverStationParVille(villeClient);
+
+            if (idStationDep == -1 || idStationArr == -1)
             {
-                Console.WriteLine("Erreur : " + ex.Message);
+                Console.WriteLine("Aucune station trouvée correspondant à la ville.");
+                Console.ReadKey();
+                return;
+            }
+
+            var chemin = graphe.CheminDijkstra(idStationDep, idStationArr);
+
+            if (chemin.Count == 0)
+            {
+                Console.WriteLine("Aucun chemin trouvé entre ces stations.");
+            }
+            else
+            {
+                Console.WriteLine("\n--- Chemin le plus court ---");
+                foreach (var id in chemin)
+                {
+                    Console.WriteLine($" - {graphe.Noeuds[id].Data.Libelle}");
+                }
+
+                Console.WriteLine($"\nDistance estimée : {chemin.Count * 0.5} km");
+                Console.WriteLine($"Temps estimé : {chemin.Count * 2} minutes");
             }
 
             Console.WriteLine("\nAppuyez sur une touche pour revenir au menu...");
