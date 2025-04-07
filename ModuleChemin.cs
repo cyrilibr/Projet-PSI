@@ -1,6 +1,6 @@
-﻿using Projet_PSI.Utils;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Linq;
+using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
@@ -17,38 +17,45 @@ namespace Projet_PSI.Modules
             Console.Write("ID du client : ");
             string idClient = Console.ReadLine();
 
-            string villeCuisinier = ObtenirVille(idCuisinier);
-            string villeClient = ObtenirVille(idClient);
+            // Récupération des adresses
+            string adresseCuisinier = ObtenirAdresseComplete(idCuisinier);
+            string adresseClient = ObtenirAdresseComplete(idClient);
 
-            if (villeCuisinier == null || villeClient == null)
+            if (string.IsNullOrEmpty(adresseCuisinier) || string.IsNullOrEmpty(adresseClient))
             {
-                Console.WriteLine("Impossible de récupérer les villes associées.");
+                Console.WriteLine("Impossible de récupérer les adresses complètes associées.");
                 Console.ReadKey();
                 return;
             }
 
-            int idStationDep = TrouverStationParVille(villeCuisinier);
-            int idStationArr = TrouverStationParVille(villeClient);
+            // Recherche des stations les plus proches
+            int idStationDep = GeoUtils.StationLaPlusProche(graphe, adresseCuisinier);
+            int idStationArr = GeoUtils.StationLaPlusProche(graphe, adresseClient);
 
             if (idStationDep == -1 || idStationArr == -1)
             {
-                Console.WriteLine("Aucune station trouvée correspondant à la ville.");
+                Console.WriteLine("Aucune station trouvée correspondant aux adresses fournies.");
                 Console.ReadKey();
                 return;
             }
 
+            // Affichage des stations les plus proches
+            Console.WriteLine($"\nStation la plus proche du cuisinier : {graphe.Noeuds[idStationDep].Data.Libelle} (ID: {idStationDep})");
+            Console.WriteLine($"Station la plus proche du client : {graphe.Noeuds[idStationArr].Data.Libelle} (ID: {idStationArr})");
+
+            // Recherche du chemin le plus court
             var chemin = graphe.CheminDijkstra(idStationDep, idStationArr);
 
             if (chemin.Count == 0)
             {
-                Console.WriteLine("Aucun chemin trouvé entre ces stations.");
+                Console.WriteLine("\nAucun chemin trouvé entre ces stations.");
             }
             else
             {
                 Console.WriteLine("\n--- Chemin le plus court ---");
-                foreach (var id in chemin)
+                foreach (var stationId in chemin)
                 {
-                    Console.WriteLine($" - {graphe.Noeuds[id].Data.Libelle}");
+                    Console.WriteLine($" - {graphe.Noeuds[stationId].Data.Libelle}");
                 }
 
                 Console.WriteLine($"\nDistance estimée : {chemin.Count * 0.5} km");
@@ -59,34 +66,20 @@ namespace Projet_PSI.Modules
             Console.ReadKey();
         }
 
-        private static string ObtenirVille(string id)
+        private static string ObtenirAdresseComplete(string id)
         {
-            using var reader = Bdd.Lire($"SELECT VILLE FROM Tier WHERE ID = '{id}'");
+            string query = $"SELECT ADR, CODEPOSTAL, VILLE FROM Tier WHERE ID = '{id}'";
+            using var reader = Bdd.Lire(query);
             if (reader.Read())
             {
+                string adr = reader.GetString("ADR");
+                string cp = reader.GetString("CODEPOSTAL");
                 string ville = reader.GetString("VILLE");
                 reader.Close();
-                return ville;
+                return $"{adr}, {cp} {ville}";
             }
             reader.Close();
             return null;
-        }
-
-        private static int TrouverStationParVille(string ville)
-        {
-            using var reader = Bdd.Lire($@"
-                SELECT IDStation FROM stations_metro
-                WHERE CommuneNom LIKE CONCAT('%', '{ville}', '%')
-                LIMIT 1;");
-
-            if (reader.Read())
-            {
-                int idStation = reader.GetInt32("IDStation");
-                reader.Close();
-                return idStation;
-            }
-            reader.Close();
-            return -1;
         }
     }
 }
