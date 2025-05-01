@@ -15,7 +15,8 @@
         public int Suivant { get; set; }
         public int TempsChangement { get; set; }
         public bool EstOriente { get; set; }
-
+        public string LibelLigne { get; set; }
+        
         public override string ToString()
         {
             return Libelle;

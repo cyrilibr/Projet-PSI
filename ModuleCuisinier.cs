@@ -50,7 +50,7 @@ namespace Projet_PSI.Modules
             using var reader = Bdd.Lire(requete);
             while (reader.Read())
             {
-                string id = reader.GetString("ID");
+                int id = reader.GetInt32("ID");
                 string prenom = reader.GetString("PRENOMT");
                 string nom = reader.GetString("NOMT");
                 string ville = reader.GetString("VILLE");
@@ -67,7 +67,6 @@ namespace Projet_PSI.Modules
             Console.Clear();
             Console.WriteLine("--- Ajouter un cuisinier ---");
 
-            Console.Write("ID : "); string id = Console.ReadLine();
             Console.Write("Mot de passe : "); string mdp = Console.ReadLine();
             Console.Write("Nom : "); string nom = Console.ReadLine();
             Console.Write("Prénom : "); string prenom = Console.ReadLine();
@@ -81,14 +80,28 @@ namespace Projet_PSI.Modules
 
             try
             {
+                // Insertion dans Tier (génère un ID automatiquement)
                 string reqTier = $@"
-                    INSERT INTO Tier VALUES ('{id}', '{mdp}', '{nom}', '{prenom}', '{adr}', '{cp}', '{ville}', '{email}', '{tel}', FALSE, '');";
-                string reqCuisinier = $@"
-                    INSERT INTO Cuisinier VALUES ('{id}', '{note}', FALSE, 0, '{zone}');";
-
+                    INSERT INTO Tier (MDP, NOMT, PRENOMT, ADR, CODEPOSTAL, VILLE, EMAIL, TEL, Radiation, Retour)
+                    VALUES ('{mdp}', '{nom}', '{prenom}', '{adr}', '{cp}', '{ville}', '{email}', '{tel}', FALSE, '');";
                 Bdd.Executer(reqTier);
+
+                // Récupération de l'ID généré
+                int idGenere = 0;
+                using (var reader = Bdd.Lire("SELECT LAST_INSERT_ID() AS ID"))
+                {
+                    if (reader.Read())
+                        idGenere = reader.GetInt32("ID");
+                    reader.Close();
+                }
+
+                // Insertion dans Cuisinier
+                string reqCuisinier = $@"
+                    INSERT INTO Cuisinier (ID, Note, CuisinierDuMois, NombreLivraisons, ZoneLivraison)
+                    VALUES ({idGenere}, '{note}', FALSE, 0, '{zone}');";
+
                 Bdd.Executer(reqCuisinier);
-                Console.WriteLine("Cuisinier ajouté avec succès !");
+                Console.WriteLine($"Cuisinier ajouté avec succès (ID: {idGenere}) !");
             }
             catch (Exception ex)
             {
@@ -105,7 +118,7 @@ namespace Projet_PSI.Modules
 
             try
             {
-                Bdd.Executer($"DELETE FROM Tier WHERE ID = '{id}'");
+                Bdd.Executer($"DELETE FROM Tier WHERE ID = {id}");
                 Console.WriteLine("Cuisinier supprimé.");
             }
             catch (Exception ex)
@@ -127,7 +140,7 @@ namespace Projet_PSI.Modules
             {
                 string requete = $@"
                     UPDATE Cuisinier SET ZoneLivraison = '{zone}' 
-                    WHERE ID = '{id}';";
+                    WHERE ID = {id};";
                 Bdd.Executer(requete);
                 Console.WriteLine("Zone mise à jour.");
             }
@@ -138,3 +151,4 @@ namespace Projet_PSI.Modules
         }
     }
 }
+

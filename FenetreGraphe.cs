@@ -1,20 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
 namespace Projet_PSI
 {
+    /// <summary>
+    /// Formulaire de visualisation du graphe de stations avec positions géographiques,
+    /// affichage des arêtes orientées, pondérées, et coloration.
+    /// </summary>
     public class FenetreGraphe<T> : Form
     {
-        private Graphe<T> graphe;//Instance du graphe générique
-        private Dictionary<int, Point> positions;//Position des nœuds
-        private int rayon = 20;
+        private Graphe<T> graphe;
+        private Dictionary<int, PointF> positions;
+        private const int rayon = 10;
+        private const int margeX = 50;
+        private const int margeY = 50;
 
-        private Button btnListeAdjacence;
-        private Button btnMatriceAdjacence;
+        // Boutons
+        private Button btnReset;
+        private Button btnListeAdj;
+        private Button btnMatrice;
         private Button btnBFS;
         private Button btnDFS;
         private Button btnConnexe;
@@ -23,603 +30,288 @@ namespace Projet_PSI
         private Button btnBellman;
         private Button btnFloyd;
         private Button btnComparer;
-        private Button btnReset;
+        private Button btnColoration;
 
+        // Parcours et coloration
         private HashSet<int> bfsVisites = new HashSet<int>();
         private HashSet<int> dfsVisites = new HashSet<int>();
         private HashSet<int> dijkstraVisites = new HashSet<int>();
         private HashSet<int> bellmanVisites = new HashSet<int>();
         private HashSet<int> floydVisites = new HashSet<int>();
+        private Dictionary<int, Brush> coloration = new Dictionary<int, Brush>();
 
         public FenetreGraphe(Graphe<T> graphe)
         {
             this.graphe = graphe;
-            this.Text = "Visualisation du Graphe";
-            this.WindowState = FormWindowState.Maximized;
+            Text = "Visualisation Géographique du Graphe";
+            WindowState = FormWindowState.Maximized;
 
-            this.Paint += DessinerGraphe;
-            this.MouseClick += SourisCliquee;
-
-            InitialiserBoutons();
-            GenererPositions();
+            InitializeComponents();
+            CalculatePositions();
+            Paint += DessinerGraphe;
         }
 
-        private void InitialiserBoutons()
+        private void InitializeComponents()
         {
-            int x = 10;
-            int y = 10;
+            int x = margeX, y = margeY;
+            int espace = 10;
 
-            Button CreerBouton(string texte, EventHandler onClick)
+            Button Create(string text, EventHandler handler)
             {
-                var btn = new Button();
-                btn.Text = texte;
-                btn.Location = new Point(x, y);
-                btn.Click += onClick;
-                this.Controls.Add(btn);
-
-                x += 130;
+                var btn = new Button { Text = text, AutoSize = true, Location = new Point(x, y) };
+                btn.Click += handler;
+                Controls.Add(btn);
+                x += btn.Width + espace;
                 return btn;
             }
 
-            btnListeAdjacence = CreerBouton("Liste d'adjacence", BoutonListeAdjacence_Click);
-            btnMatriceAdjacence = CreerBouton("Matrice d'adjacence", BoutonMatriceAdjacence_Click);
-            btnBFS = CreerBouton("BFS (1->tous)", BoutonBFS_Click);
-            btnDFS = CreerBouton("DFS (1->tous)", BoutonDFS_Click);
-            btnConnexe = CreerBouton("Est connexe ?", BoutonConnexe_Click);
-            btnCycle = CreerBouton("Contient cycle ?", BoutonCycle_Click);
-            btnDijkstra = CreerBouton("Dijkstra (1->3)", BoutonDijkstra_Click);
-            btnBellman = CreerBouton("Bellman (1->3)", BoutonBellman_Click);
-            btnFloyd = CreerBouton("Floyd (1->3)", BoutonFloyd_Click);
-            btnComparer = CreerBouton("Comparer Algos", BoutonComparer_Click);
-            btnReset = CreerBouton("Réinitialiser", BoutonReset_Click);
+            btnReset = Create("Réinitialiser", (s, e) => { ClearAll(); Invalidate(); });
+            btnListeAdj = Create("Liste Adjacence", BoutonListeAdj_Click);
+            btnMatrice = Create("Matrice Adjacence", BoutonMatriceAdj_Click);
+            btnBFS = Create("BFS (1->tous)", BoutonBFS_Click);
+            btnDFS = Create("DFS (1->tous)", BoutonDFS_Click);
+            btnConnexe = Create("Est connexe ?", BoutonConnexe_Click);
+            btnCycle = Create("Contient cycle ?", BoutonCycle_Click);
+            btnDijkstra = Create("Dijkstra (1->3)", BoutonDijkstra_Click);
+            btnBellman = Create("Bellman (11->30)", BoutonBellman_Click);
+            btnFloyd = Create("Floyd (6->22)", BoutonFloyd_Click);
+            btnComparer = Create("Comparer Algos", BoutonComparer_Click);
+            btnColoration = Create("Coloration Graphe", BoutonColoration_Click);
         }
 
-        private void GenererPositions()
+        private void CalculatePositions()
         {
-            positions = new Dictionary<int, Point>();
-            Random rand = new Random();
-            foreach (var noeud in graphe.Noeuds.Values)
+            var stations = graphe.Noeuds.Values
+                .Select(n => n.Data as Station)
+                .Where(s => s != null)
+                .ToList();
+
+            if (!stations.Any()) return;
+
+            double minLat = stations.Min(s => s.Latitude);
+            double maxLat = stations.Max(s => s.Latitude);
+            double minLon = stations.Min(s => s.Longitude);
+            double maxLon = stations.Max(s => s.Longitude);
+
+            float w = ClientSize.Width - 2 * margeX;
+            float h = ClientSize.Height - 2 * margeY;
+            positions = new Dictionary<int, PointF>();
+
+            foreach (var kv in graphe.Noeuds)
             {
-                positions[noeud.Id] = new Point(rand.Next(100, 1500), rand.Next(100, 900));
+                if (kv.Value.Data is Station s)
+                {
+                    float px = (float)((s.Longitude - minLon) / (maxLon - minLon) * w) + margeX;
+                    float py = (float)((maxLat - s.Latitude) / (maxLat - minLat) * h) + margeY;
+                    positions[kv.Key] = new PointF(px, py);
+                }
             }
         }
 
         private void DessinerGraphe(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
+            // Arêtes
             foreach (var lien in graphe.Liens)
             {
+                if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id)) continue;
                 var p1 = positions[lien.Noeud1.Id];
                 var p2 = positions[lien.Noeud2.Id];
-                g.DrawLine(Pens.Black, p1, p2);
+
+                // Flèche si non bidirectionnel
+                DrawArrow(g, p1, p2, lien.Bidirectionnel ? Pens.Gray : Pens.Black);
+
+                // Poids au milieu
+                var mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+                g.DrawString(lien.Poids.ToString(), Font, Brushes.DarkBlue, mid);
             }
 
-            foreach (var noeud in graphe.Noeuds.Values)
+            // Nœuds
+            foreach (var kv in graphe.Noeuds)
             {
-                int id = noeud.Id;
-                var pos = positions[id];
+                if (!positions.TryGetValue(kv.Key, out var pos)) continue;
 
-                Brush couleurRemplissage = Brushes.LightBlue;
+                Brush fill = Brushes.White;
+                if (coloration.TryGetValue(kv.Key, out var col)) fill = col;
+                else if (bfsVisites.Contains(kv.Key)) fill = Brushes.Yellow;
+                else if (dfsVisites.Contains(kv.Key)) fill = Brushes.Red;
+                else if (dijkstraVisites.Contains(kv.Key)) fill = Brushes.Green;
+                else if (bellmanVisites.Contains(kv.Key)) fill = Brushes.Violet;
+                else if (floydVisites.Contains(kv.Key)) fill = Brushes.Pink;
 
-                if (bfsVisites.Contains(id)) couleurRemplissage = Brushes.Yellow;
-                else if (dfsVisites.Contains(id)) couleurRemplissage = Brushes.Red;
-                else if (dijkstraVisites.Contains(id)) couleurRemplissage = Brushes.Green;
-                else if (bellmanVisites.Contains(id)) couleurRemplissage = Brushes.Violet;
-                else if (floydVisites.Contains(id)) couleurRemplissage = Brushes.Pink;
+                g.FillEllipse(fill, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
+                g.DrawEllipse(Pens.Blue, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
 
-                g.FillEllipse(couleurRemplissage, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
-
-                Pen contour = Pens.Black;
-
-                g.DrawEllipse(contour, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
-
-                string affichage = noeud.Data?.ToString() ?? "null";
-                g.DrawString(affichage, new Font("Arial", 10),
-                             Brushes.Black, pos.X - (rayon / 2), pos.Y - (rayon / 2));
+                string lbl = (kv.Value.Data as Station)?.Libelle ?? kv.Key.ToString();
+                var sz = g.MeasureString(lbl, Font);
+                g.DrawString(lbl, Font, Brushes.Black, pos.X - sz.Width / 2, pos.Y - sz.Height / 2);
             }
         }
 
-        private void SourisCliquee(object sender, MouseEventArgs e)
+        private void DrawArrow(Graphics g, PointF a, PointF b, Pen pen)
         {
-            foreach (var noeud in graphe.Noeuds.Values)
-            {
-                Point pos = positions[noeud.Id];
-                Rectangle zone = new Rectangle(pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
+            const float arrowSize = 8f;
+            float dx = b.X - a.X, dy = b.Y - a.Y;
+            float len = (float)Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1e-3) return;
+            float ux = dx / len, uy = dy / len;
+            var src = new PointF(a.X + ux * rayon, a.Y + uy * rayon);
+            var dst = new PointF(b.X - ux * rayon, b.Y - uy * rayon);
 
-                if (zone.Contains(e.Location))
-                {
-                    string affichageData = noeud.Data?.ToString() ?? "null";
-                    var liensDuNoeud = graphe.Liens
-                        .Where(l => l.Noeud1.Id == noeud.Id || l.Noeud2.Id == noeud.Id)
-                        .Select(l => l.Noeud1.Id == noeud.Id ? l.Noeud2.Id : l.Noeud1.Id);
-
-                    string message = $"ID: {noeud.Id}\r\n" +
-                                     $"Data (T): {affichageData}\r\n" +
-                                     $"Liens: {string.Join(", ", liensDuNoeud)}";
-
-                    AfficherEnPleinEcran("Informations sur le sommet", message);
-                    break;
-                }
-            }
+            g.DrawLine(pen, src, dst);
+            var perp = new PointF(-uy, ux);
+            var p1 = new PointF(dst.X - ux * arrowSize + perp.X * arrowSize / 2,
+                                 dst.Y - uy * arrowSize + perp.Y * arrowSize / 2);
+            var p2 = new PointF(dst.X - ux * arrowSize - perp.X * arrowSize / 2,
+                                 dst.Y - uy * arrowSize - perp.Y * arrowSize / 2);
+            g.FillPolygon(pen.Brush, new[] { dst, p1, p2 });
         }
 
-        private void BoutonListeAdjacence_Click(object sender, EventArgs e)
-        {
-            string info = "Liste d'adjacence :\r\n" + graphe.AfficherListeAdjacence();
-            AfficherEnPleinEcran("Liste d'adjacence", info);
-        }
-
-        private void BoutonMatriceAdjacence_Click(object sender, EventArgs e)
-        {
-            string info = "Matrice d'adjacence :\r\n" + graphe.AfficherMatriceAdjacence();
-            AfficherEnPleinEcran("Matrice d'adjacence", info);
-        }
-
-        private void BoutonConnexe_Click(object sender, EventArgs e)
-        {
-            bool estConnexe = graphe.EstConnexe();
-            string info = $"Le graphe est-il connexe ? {estConnexe}";
-            AfficherEnPleinEcran("Est Connexe ?", info);
-        }
-
-        private void BoutonCycle_Click(object sender, EventArgs e)
-        {
-            bool cycle = graphe.ContientCycle();
-            string info = $"Le graphe contient-il un cycle ? {cycle}";
-            AfficherEnPleinEcran("Contient un cycle ?", info);
-        }
-
-        private void BoutonBFS_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            if (!graphe.Noeuds.ContainsKey(1)) return;
-            var queue = new Queue<int>();
-            queue.Enqueue(1);
-            bfsVisites.Add(1);
-
-            while (queue.Count > 0)
-            {
-                int current = queue.Dequeue();
-                var noeudCourant = graphe.Noeuds[current];
-                foreach (var voisin in noeudCourant.Voisins)
-                {
-                    if (!bfsVisites.Contains(voisin.Id))
-                    {
-                        bfsVisites.Add(voisin.Id);
-                        queue.Enqueue(voisin.Id);
-                    }
-                }
-            }
-            Invalidate();
-        }
-
-        private void BoutonDFS_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            if (!graphe.Noeuds.ContainsKey(1)) return;
-            var stack = new Stack<int>();
-            stack.Push(1);
-
-            while (stack.Count > 0)
-            {
-                int current = stack.Pop();
-                if (!dfsVisites.Contains(current))
-                {
-                    dfsVisites.Add(current);
-
-                    var noeudCourant = graphe.Noeuds[current];
-                    foreach (var voisin in noeudCourant.Voisins)
-                    {
-                        if (!dfsVisites.Contains(voisin.Id))
-                        {
-                            stack.Push(voisin.Id);
-                        }
-                    }
-                }
-            }
-            Invalidate();
-        }
-
-        private void BoutonDijkstra_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            if (!graphe.Noeuds.ContainsKey(9) || !graphe.Noeuds.ContainsKey(18)) return;
-            var chemin = graphe.CheminDijkstra(9, 18);
-
-            foreach (var id in chemin)
-            {
-                dijkstraVisites.Add(id);
-            }
-            Invalidate();
-        }
-
-        private void BoutonBellman_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            if (!graphe.Noeuds.ContainsKey(11) || !graphe.Noeuds.ContainsKey(30)) return;
-            var chemin = graphe.CheminBellmanFord(11, 30);
-
-            foreach (var id in chemin)
-            {
-                bellmanVisites.Add(id);
-            }
-            Invalidate();
-        }
-
-        private void BoutonFloyd_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            if (!graphe.Noeuds.ContainsKey(6) || !graphe.Noeuds.ContainsKey(22)) return;
-            var chemin = graphe.CheminFloydWarshall(6, 22);
-
-            foreach (var id in chemin)
-            {
-                floydVisites.Add(id);
-            }
-            Invalidate();
-        }
-
-        private void BoutonComparer_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-
-            int noeud_d = 11;
-            int noeud_f = 21;
-
-            if (!graphe.Noeuds.ContainsKey(noeud_d) || !graphe.Noeuds.ContainsKey(noeud_f)) return;
-
-            var resultats = new List<(string nom, long tempsMs, List<int> chemin)>();
-
-            var sw = Stopwatch.StartNew();
-
-            sw.Restart();
-            var cheminDij = graphe.CheminDijkstra(noeud_d, noeud_f);
-            sw.Stop();
-            resultats.Add(("Dijkstra", sw.ElapsedMilliseconds, cheminDij));
-
-            sw.Restart();
-            var cheminBell = graphe.CheminBellmanFord(noeud_d, noeud_f);
-            sw.Stop();
-            resultats.Add(("Bellman-Ford", sw.ElapsedMilliseconds, cheminBell));
-
-            sw.Restart();
-            var cheminFloyd = graphe.CheminFloydWarshall(noeud_d, noeud_f);
-            sw.Stop();
-            resultats.Add(("Floyd-Warshall", sw.ElapsedMilliseconds, cheminFloyd));
-
-            var plusRapide = resultats.OrderBy(r => r.tempsMs).First();
-
-            // 1) On colorie "en plein" le chemin du plus rapide
-            if (plusRapide.nom == "Dijkstra")
-                foreach (var id in plusRapide.chemin) dijkstraVisites.Add(id);
-            if (plusRapide.nom == "Bellman-Ford")
-                foreach (var id in plusRapide.chemin) bellmanVisites.Add(id);
-            if (plusRapide.nom == "Floyd-Warshall")
-                foreach (var id in plusRapide.chemin) floydVisites.Add(id);
-
-            foreach (var r in resultats)
-            {
-                if (r.nom == plusRapide.nom) continue;
-            }
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("Comparaison des algorithmes (millisecondes) :");
-            foreach (var r in resultats.OrderBy(r => r.tempsMs))
-            {
-                sb.AppendLine($"{r.nom} : {r.tempsMs} ms (Chemin: {string.Join("-", r.chemin)})");
-            }
-            sb.AppendLine($"\nLe plus rapide est : {plusRapide.nom}");
-
-            AfficherEnPleinEcran("Comparaison des algos", sb.ToString());
-
-            Invalidate();
-        }
-
-        private void BoutonReset_Click(object sender, EventArgs e)
-        {
-            ResetAllColorations();
-            Invalidate();
-        }
-
-        private void ResetAllColorations()
+        private void ClearAll()
         {
             bfsVisites.Clear();
             dfsVisites.Clear();
             dijkstraVisites.Clear();
             bellmanVisites.Clear();
             floydVisites.Clear();
+            coloration.Clear();
+        }
+
+        private void BoutonListeAdj_Click(object s, EventArgs e)
+        {
+            string txt = "Liste d'adjacence:\n" + graphe.AfficherListeAdjacence();
+            AfficherEnPleinEcran("Liste d'adjacence", txt);
+        }
+        private void BoutonMatriceAdj_Click(object s, EventArgs e)
+        {
+            string txt = "Matrice d'adjacence:\n" + graphe.AfficherMatriceAdjacence();
+            AfficherEnPleinEcran("Matrice d'adjacence", txt);
+        }
+        private void BoutonConnexe_Click(object s, EventArgs e)
+        {
+            bool res = graphe.EstConnexe();
+            AfficherEnPleinEcran("Connexe", $"Le graphe est connexe ? {res}");
+        }
+        private void BoutonCycle_Click(object s, EventArgs e)
+        {
+            bool res = graphe.ContientCycle();
+            AfficherEnPleinEcran("Cycle", $"Le graphe contient un cycle ? {res}");
+        }
+        private void BoutonBFS_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            if (graphe.Noeuds.ContainsKey(1))
+            {
+                var queue = new Queue<int>(); queue.Enqueue(1); bfsVisites.Add(1);
+                while (queue.Count > 0)
+                {
+                    int u = queue.Dequeue();
+                    foreach (var n in graphe.Noeuds[u].Voisins)
+                        if (bfsVisites.Add(n.Id)) queue.Enqueue(n.Id);
+                }
+            }
+            Invalidate();
+        }
+        private void BoutonDFS_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            if (graphe.Noeuds.ContainsKey(1))
+            {
+                var stack = new Stack<int>(); stack.Push(1);
+                while (stack.Count > 0)
+                {
+                    int u = stack.Pop();
+                    if (dfsVisites.Add(u))
+                        foreach (var n in graphe.Noeuds[u].Voisins)
+                            if (!dfsVisites.Contains(n.Id)) stack.Push(n.Id);
+                }
+            }
+            Invalidate();
+        }
+        private void BoutonDijkstra_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            if (graphe.Noeuds.ContainsKey(1) && graphe.Noeuds.ContainsKey(3))
+                foreach (var id in graphe.CheminDijkstra(1, 3)) dijkstraVisites.Add(id);
+            Invalidate();
+        }
+        private void BoutonBellman_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            if (graphe.Noeuds.ContainsKey(11) && graphe.Noeuds.ContainsKey(30))
+                foreach (var id in graphe.CheminBellmanFord(11, 30)) bellmanVisites.Add(id);
+            Invalidate();
+        }
+        private void BoutonFloyd_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            if (graphe.Noeuds.ContainsKey(6) && graphe.Noeuds.ContainsKey(22))
+                foreach (var id in graphe.CheminFloydWarshall(6, 22)) floydVisites.Add(id);
+            Invalidate();
+        }
+        private void BoutonComparer_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            var results = new List<(string nom, long t, List<int> chemin)>();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            sw.Restart();
+            var ch1 = graphe.CheminDijkstra(11, 21);
+            sw.Stop();
+            results.Add(("Dijkstra", sw.ElapsedMilliseconds, ch1));
+
+            sw.Restart();
+            var ch2 = graphe.CheminBellmanFord(11, 21);
+            sw.Stop();
+            results.Add(("Bellman-Ford", sw.ElapsedMilliseconds, ch2));
+
+            sw.Restart();
+            var ch3 = graphe.CheminFloydWarshall(11, 21);
+            sw.Stop();
+            results.Add(("Floyd-Warshall", sw.ElapsedMilliseconds, ch3));
+
+            var fastest = results.OrderBy(r => r.t).First();
+            foreach (var id in fastest.chemin)
+            {
+                if (fastest.nom == "Dijkstra") dijkstraVisites.Add(id);
+                if (fastest.nom == "Bellman-Ford") bellmanVisites.Add(id);
+                if (fastest.nom == "Floyd-Warshall") floydVisites.Add(id);
+            }
+
+            string msg = string.Join("\n", results.Select(r => $"{r.nom} : {r.t} ms (Chemin: {string.Join("-", r.chemin)})"))
+                         + $"\nLe plus rapide est : {fastest.nom}";
+            AfficherEnPleinEcran("Comparaison algorithmes", msg);
+            Invalidate();
+        }
+        private void BoutonColoration_Click(object s, EventArgs e)
+        {
+            ClearAll();
+            // Brush palette
+            Brush[] palette = { Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon, Brushes.LightYellow, Brushes.LightPink, Brushes.LightGray };
+            foreach (var node in graphe.Noeuds.Keys)
+            {
+                var used = new HashSet<Brush>();
+                foreach (var v in graphe.Noeuds[node].Voisins)
+                    if (coloration.TryGetValue(v.Id, out var b)) used.Add(b);
+                coloration[node] = palette.First(c => !used.Contains(c));
+            }
+            Invalidate();
         }
 
         private void AfficherEnPleinEcran(string titre, string contenu)
         {
-            Form fenetre = new Form();
-            fenetre.Text = titre;
-            fenetre.WindowState = FormWindowState.Maximized;
-
-            TextBox textBox = new TextBox();
-            textBox.Multiline = true;
-            textBox.Dock = DockStyle.Fill;
-            textBox.ReadOnly = true;
-            textBox.ScrollBars = ScrollBars.Both;
-            textBox.Text = contenu;
-
-            fenetre.Controls.Add(textBox);
-            fenetre.ShowDialog();
+            var fen = new Form { Text = titre, WindowState = FormWindowState.Maximized };
+            var tb = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Dock = DockStyle.Fill, Text = contenu };
+            fen.Controls.Add(tb); fen.ShowDialog();
         }
 
-        /*
-        private Graphe<T> graphe;//Instance du graphe générique à afficher
-        private Dictionary<int, Point> positions;//Dictionnaire des positions aléatoires des nœuds
-        private int rayon = 20;//Rayon des cercles représentant les nœuds
-
-        private Button btnListeAdjacence;
-        private Button btnMatriceAdjacence;
-        private Button btnBFS;
-        private Button btnDFS;
-        private Button btnConnexe;
-        private Button btnCycle;
-
-        private HashSet<int> bfsVisites = new HashSet<int>();
-        private HashSet<int> dfsVisites = new HashSet<int>();
-
-        /// <summary>
-        /// Constructeur de la classe FenetreGraphe (générique).
-        /// </summary>
-        /// <param name="graphe">Instance du graphe générique à afficher.</param>
-        public FenetreGraphe(Graphe<T> graphe)
+        protected override void OnResize(EventArgs e)
         {
-            this.graphe = graphe;
-            this.Text = "Visualisation du Graphe";
-
-            this.WindowState = FormWindowState.Maximized;
-
-            this.Paint += DessinerGraphe;
-
-            InitialiserBoutons();
-
-            this.MouseClick += SourisCliquee;
-
-            GenererPositions();
-        }
-
-        /// <summary>
-        /// Crée et positionne les différents boutons sur la fenêtre (en ligne, en haut à gauche).
-        /// </summary>
-        private void InitialiserBoutons()
-        {
-            int x = 10;
-            int y = 10;
-
-            Button CreerBouton(string texte, EventHandler onClick)
-            {
-                var btn = new Button();
-                btn.Text = texte;
-                btn.Location = new Point(x, y);
-                btn.Click += onClick;
-                this.Controls.Add(btn);
-
-                x += 130;
-                return btn;
-            }
-
-            btnListeAdjacence = CreerBouton("Liste d'adjacence", BoutonListeAdjacence_Click);
-            btnMatriceAdjacence = CreerBouton("Matrice d'adjacence", BoutonMatriceAdjacence_Click);
-            btnBFS = CreerBouton("BFS (depuis 1)", BoutonBFS_Click);
-            btnDFS = CreerBouton("DFS (depuis 1)", BoutonDFS_Click);
-            btnConnexe = CreerBouton("Est connexe ?", BoutonConnexe_Click);
-            btnCycle = CreerBouton("Contient un cycle ?", BoutonCycle_Click);
-        }
-
-        /// <summary>
-        /// Génère des positions aléatoires pour chaque nœud du graphe.
-        /// </summary>
-        private void GenererPositions()
-        {
-            positions = new Dictionary<int, Point>();
-            Random rand = new Random();
-
-            foreach (var noeud in graphe.Noeuds.Values)
-            {
-                positions[noeud.Id] = new Point(rand.Next(100, 1500), rand.Next(100, 900));
-            }
-        }
-
-        /// <summary>
-        /// Dessine le graphe sur la fenêtre (événement Paint).
-        /// </summary>
-        private void DessinerGraphe(object sender, PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-
-            foreach (var lien in graphe.Liens)
-            {
-                Point p1 = positions[lien.Noeud1.Id];
-                Point p2 = positions[lien.Noeud2.Id];
-                g.DrawLine(Pens.Black, p1, p2);
-            }
-
-            foreach (var noeud in graphe.Noeuds.Values)
-            {
-                Point pos = positions[noeud.Id];
-
-                // Choix de la couleur selon BFS / DFS
-                // Si un nœud est dans BFS ET DFS, on peut choisir de prioriser BFS par exemple
-                Brush couleurRemplissage;
-                if (bfsVisites.Contains(noeud.Id))
-                {
-                    couleurRemplissage = Brushes.Yellow; // BFS
-                }
-                else if (dfsVisites.Contains(noeud.Id))
-                {
-                    couleurRemplissage = Brushes.Red; // DFS
-                }
-                else
-                {
-                    couleurRemplissage = Brushes.LightBlue; // Nœud non-visité par BFS/DFS
-                }
-
-                g.FillEllipse(couleurRemplissage, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
-                g.DrawEllipse(Pens.Black, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
-
-                string affichage = noeud.Data?.ToString() ?? "null";
-                g.DrawString(affichage, new Font("Arial", 10),
-                             Brushes.Black, pos.X - (rayon / 2), pos.Y - (rayon / 2));
-            }
-        }
-
-        /// <summary>
-        /// Gère le clic de la souris pour afficher les informations d'un nœud
-        /// quand on clique sur son cercle (Fenêtre plein écran).
-        /// </summary>
-        private void SourisCliquee(object sender, MouseEventArgs e)
-        {
-            foreach (var noeud in graphe.Noeuds.Values)
-            {
-                Point pos = positions[noeud.Id];
-                Rectangle zone = new Rectangle(pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
-
-                if (zone.Contains(e.Location))
-                {
-                    string affichageData = noeud.Data?.ToString() ?? "null";
-                    var liensDuNoeud = graphe.Liens
-                        .Where(l => l.Noeud1.Id == noeud.Id || l.Noeud2.Id == noeud.Id)
-                        .Select(l => l.Noeud1.Id == noeud.Id ? l.Noeud2.Id : l.Noeud1.Id);
-
-                    string message = $"ID: {noeud.Id}\r\n" +
-                                     $"Data (T): {affichageData}\r\n" +
-                                     $"Liens: {string.Join(", ", liensDuNoeud)}";
-
-                    // On affiche une Form maximisée avec un TextBox multiligne
-                    AfficherEnPleinEcran("Informations sur le sommet", message);
-                    break;
-                }
-            }
-        }
-
-        #region Événements des boutons
-
-        private void BoutonListeAdjacence_Click(object sender, EventArgs e)
-        {
-            string info = "Liste d'adjacence :\r\n" + graphe.AfficherListeAdjacence();
-            AfficherEnPleinEcran("Liste d'adjacence", info);
-        }
-
-        private void BoutonMatriceAdjacence_Click(object sender, EventArgs e)
-        {
-            string info = "Matrice d'adjacence :\r\n" + graphe.AfficherMatriceAdjacence();
-            AfficherEnPleinEcran("Matrice d'adjacence", info);
-        }
-
-        /// <summary>
-        /// Exécute un BFS depuis le nœud d'ID 1 et colorie les nœuds visités.
-        /// </summary>
-        private void BoutonBFS_Click(object sender, EventArgs e)
-        {
-            bfsVisites.Clear();
-            dfsVisites.Clear();
-
-            if (!graphe.Noeuds.ContainsKey(1)) return;
-
-            var queue = new Queue<int>();
-            queue.Enqueue(1);
-            bfsVisites.Add(1);
-
-            while (queue.Count > 0)
-            {
-                int current = queue.Dequeue();
-                var noeudCourant = graphe.Noeuds[current];
-                foreach (var voisin in noeudCourant.Voisins)
-                {
-                    if (!bfsVisites.Contains(voisin.Id))
-                    {
-                        bfsVisites.Add(voisin.Id);
-                        queue.Enqueue(voisin.Id);
-                    }
-                }
-            }
-
+            base.OnResize(e);
+            CalculatePositions();
             Invalidate();
         }
-
-        /// <summary>
-        /// Exécute un DFS depuis le nœud d'ID 1 et colorie les nœuds visités.
-        /// </summary>
-        private void BoutonDFS_Click(object sender, EventArgs e)
-        {
-            dfsVisites.Clear();
-            bfsVisites.Clear();
-
-            if (!graphe.Noeuds.ContainsKey(1)) return;
-
-            var stack = new Stack<int>();
-            stack.Push(1);
-
-            while (stack.Count > 0)
-            {
-                int current = stack.Pop();
-                if (!dfsVisites.Contains(current))
-                {
-                    dfsVisites.Add(current);
-
-                    var noeudCourant = graphe.Noeuds[current];
-                    foreach (var voisin in noeudCourant.Voisins)
-                    {
-                        if (!dfsVisites.Contains(voisin.Id))
-                        {
-                            stack.Push(voisin.Id);
-                        }
-                    }
-                }
-            }
-
-            Invalidate();
-        }
-
-        private void BoutonConnexe_Click(object sender, EventArgs e)
-        {
-            bool estConnexe = graphe.EstConnexe();
-            string info = $"Le graphe est-il connexe ? {estConnexe}";
-            AfficherEnPleinEcran("Est Connexe ?", info);
-        }
-
-        private void BoutonCycle_Click(object sender, EventArgs e)
-        {
-            bool cycle = graphe.ContientCycle();
-            string info = $"Le graphe contient-il un cycle ? {cycle}";
-            AfficherEnPleinEcran("Contient un cycle ?", info);
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Crée et affiche en plein écran une nouvelle fenêtre
-        /// contenant le texte passé en paramètre.
-        /// (Utilisé pour la liste d'adjacence, la matrice, ou les infos d'un nœud.)
-        /// </summary>
-        /// <param name="titre">Titre de la nouvelle fenêtre.</param>
-        /// <param name="contenu">Texte à afficher.</param>
-        private void AfficherEnPleinEcran(string titre, string contenu)
-        {
-            Form fenetre = new Form();
-            fenetre.Text = titre;
-            fenetre.WindowState = FormWindowState.Maximized;
-
-            TextBox textBox = new TextBox();
-            textBox.Multiline = true;
-            textBox.Dock = DockStyle.Fill;
-            textBox.ReadOnly = true;
-            textBox.ScrollBars = ScrollBars.Both;
-            textBox.Text = contenu;
-
-            fenetre.Controls.Add(textBox);
-            fenetre.ShowDialog();
-        }
-        */
     }
 }

@@ -55,7 +55,8 @@ namespace Projet_PSI.Modules
                 Console.WriteLine("\n--- Chemin le plus court ---");
                 foreach (var stationId in chemin)
                 {
-                    Console.WriteLine($" - {graphe.Noeuds[stationId].Data.Libelle}");
+                    var station = graphe.Noeuds[stationId].Data;
+                    Console.WriteLine($" - {station.Libelle} (Ligne : {station.LibelLigne})");
                 }
 
                 Console.WriteLine($"\nDistance estimée : {chemin.Count * 0.5} km");
