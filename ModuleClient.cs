@@ -5,13 +5,14 @@ namespace Projet_PSI.Modules
 {
     public static class ModuleClient
     {
+        // === MENU ADMIN ===
         public static void Lancer()
         {
             bool retour = false;
             while (!retour)
             {
                 Console.Clear();
-                Console.WriteLine("--- Module Client ---");
+                Console.WriteLine("--- Module Client (admin) ---");
                 Console.WriteLine("1. Afficher clients par nom");
                 Console.WriteLine("2. Afficher clients par rue");
                 Console.WriteLine("3. Afficher clients par montant total d'achats");
@@ -146,6 +147,12 @@ namespace Projet_PSI.Modules
             {
                 Console.WriteLine("Erreur : " + ex.Message);
             }
+        }
+
+        // === MENU CLIENT (utilisateur connecté) ===
+        public static void LancerClient(Graphe<Station> graphe)
+        {
+            ModuleClientConnecte.Lancer(graphe);
         }
     }
 }

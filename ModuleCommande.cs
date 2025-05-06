@@ -85,7 +85,7 @@ namespace Projet_PSI.Modules
                 if (r.Read()) livraisonID = r.GetInt32("MaxID");
                 r.Close();
 
-                Bdd.Executer($"INSERT INTO Recoit VALUES ('{idClient}', {livraisonID})");
+                Bdd.Executer($"INSERT INTO Reçoit VALUES ('{idClient}', {livraisonID})");
                 Bdd.Executer($"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison) VALUES ('{adresseClient}', '{adresseCuisinier}', 0, '00:00:00', '', {livraisonID})");
 
                 foreach (string ligne in metsChoisis.Split('\n'))

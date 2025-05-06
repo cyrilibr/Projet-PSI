@@ -5,13 +5,14 @@ namespace Projet_PSI.Modules
 {
     public static class ModuleCuisinier
     {
+        // === MENU ADMIN ===
         public static void Lancer()
         {
             bool retour = false;
             while (!retour)
             {
                 Console.Clear();
-                Console.WriteLine("--- Module Cuisinier ---");
+                Console.WriteLine("--- Module Cuisinier (admin) ---");
                 Console.WriteLine("1. Afficher tous les cuisiniers");
                 Console.WriteLine("2. Ajouter un cuisinier");
                 Console.WriteLine("3. Supprimer un cuisinier");
@@ -36,6 +37,12 @@ namespace Projet_PSI.Modules
                     Console.ReadKey();
                 }
             }
+        }
+
+        // === MENU CUISINIER CONNECTE ===
+        public static void LancerCuisinier(Graphe<Station> graphe)
+        {
+            ModuleCuisinierConnecte.Lancer(graphe);
         }
 
         private static void Afficher()
@@ -80,13 +87,11 @@ namespace Projet_PSI.Modules
 
             try
             {
-                // Insertion dans Tier (génère un ID automatiquement)
                 string reqTier = $@"
                     INSERT INTO Tier (MDP, NOMT, PRENOMT, ADR, CODEPOSTAL, VILLE, EMAIL, TEL, Radiation, Retour)
                     VALUES ('{mdp}', '{nom}', '{prenom}', '{adr}', '{cp}', '{ville}', '{email}', '{tel}', FALSE, '');";
                 Bdd.Executer(reqTier);
 
-                // Récupération de l'ID généré
                 int idGenere = 0;
                 using (var reader = Bdd.Lire("SELECT LAST_INSERT_ID() AS ID"))
                 {
@@ -95,7 +100,6 @@ namespace Projet_PSI.Modules
                     reader.Close();
                 }
 
-                // Insertion dans Cuisinier
                 string reqCuisinier = $@"
                     INSERT INTO Cuisinier (ID, Note, CuisinierDuMois, NombreLivraisons, ZoneLivraison)
                     VALUES ({idGenere}, '{note}', FALSE, 0, '{zone}');";
@@ -151,4 +155,3 @@ namespace Projet_PSI.Modules
         }
     }
 }
-

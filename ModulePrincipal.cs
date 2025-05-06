@@ -17,6 +17,7 @@ namespace Projet_PSI
                 Console.WriteLine("3. Gestion des commandes");
                 Console.WriteLine("4. Chemin de livraison");
                 Console.WriteLine("5. Statistiques générales");
+                Console.WriteLine("6. Exporter les données");
                 Console.WriteLine("0. Quitter");
                 Console.Write("Choix : ");
                 string choix = Console.ReadLine();
@@ -28,6 +29,7 @@ namespace Projet_PSI
                     case "3": ModuleCommande.Lancer(); break;
                     case "4": ModuleChemin.Lancer(graphe); break;
                     case "5": ModuleStatistiques.Lancer(); break;
+                    case "6": ModuleExport.Lancer(); break;
                     case "0": quitter = true; break;
                     default:
                         Console.WriteLine("Choix invalide. Appuyez sur une touche pour réessayer.");

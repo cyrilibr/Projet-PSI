@@ -306,7 +306,6 @@ namespace Projet_PSI
             var tb = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Dock = DockStyle.Fill, Text = contenu };
             fen.Controls.Add(tb); fen.ShowDialog();
         }
-
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
