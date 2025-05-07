@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Xml.Serialization;
-using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
@@ -19,6 +19,28 @@ namespace Projet_PSI.Modules
 
         public static void ExporterXml<T>(List<T> objets, string chemin)
         {
+            // Vérifie récursivement si le type T ou ses propriétés contiennent un IDictionary
+            bool ContientDictionnaire(Type type)
+            {
+                if (typeof(IDictionary).IsAssignableFrom(type) ||
+                    (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
+                    return true;
+
+                foreach (var prop in type.GetProperties())
+                {
+                    if (ContientDictionnaire(prop.PropertyType))
+                        return true;
+                }
+
+                return false;
+            }
+
+            if (ContientDictionnaire(typeof(T)))
+            {
+                Console.WriteLine("Erreur : le type contient un dictionnaire, XmlSerializer ne peut pas le sérialiser.");
+                return;
+            }
+
             var serializer = new XmlSerializer(typeof(List<T>));
             using var writer = new StreamWriter(chemin);
             serializer.Serialize(writer, objets);

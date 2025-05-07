@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Text.Json;
 using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
@@ -34,30 +37,51 @@ namespace Projet_PSI.Modules
 
         private static void Exporter(string table)
         {
-            string format;
             Console.Write("Format (json/xml) : ");
-            format = Console.ReadLine()?.ToLower();
+            string format = Console.ReadLine()?.ToLower();
 
+            // On place l'export sur le Bureau de l'utilisateur
             string bureau = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string chemin = Path.Combine(bureau, $"{table}_export.{format}");
-            var liste = new List<Dictionary<string, object>>();
-
-            using var reader = Bdd.Lire($"SELECT * FROM {table}");
-            while (reader.Read())
-            {
-                var ligne = new Dictionary<string, object>();
-                for (int i = 0; i < reader.FieldCount; i++)
-                    ligne[reader.GetName(i)] = reader.GetValue(i);
-                liste.Add(ligne);
-            }
-            reader.Close();
 
             if (format == "json")
-                Exporteur.ExporterJson(liste, chemin);
+            {
+                // JSON : on sérialise la liste de dictionnaires
+                var liste = new List<Dictionary<string, object>>();
+                using (var reader = Bdd.Lire($"SELECT * FROM {table}"))
+                {
+                    while (reader.Read())
+                    {
+                        var ligne = new Dictionary<string, object>();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                            ligne[reader.GetName(i)] = reader.GetValue(i);
+                        liste.Add(ligne);
+                    }
+                    reader.Close();
+                }
+
+                string json = JsonSerializer.Serialize(liste, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(chemin, json);
+                Console.WriteLine($"Export JSON terminé : {chemin}");
+            }
             else if (format == "xml")
-                Exporteur.ExporterXml(liste, chemin);
+            {
+                // XML : on passe par un DataTable, qui gère n'importe quelle colonne
+                var dt = new DataTable(table);
+                using (var reader = Bdd.Lire($"SELECT * FROM {table}"))
+                {
+                    dt.Load(reader);
+                    reader.Close();
+                }
+
+                // Génère le XML + schéma automatiquement
+                dt.WriteXml(chemin, XmlWriteMode.WriteSchema);
+                Console.WriteLine($"Export XML terminé : {chemin}");
+            }
             else
+            {
                 Console.WriteLine("Format non pris en charge.");
+            }
         }
     }
 }
