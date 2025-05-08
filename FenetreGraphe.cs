@@ -53,12 +53,13 @@ namespace Projet_PSI
 
         private void InitializeComponents()
         {
-            int x = margeX, y = margeY;
+            int x = margeX;
+            int y = margeY;
             int espace = 10;
 
             Button Create(string text, EventHandler handler)
             {
-                var btn = new Button { Text = text, AutoSize = true, Location = new Point(x, y) };
+                var btn = new Button { Text = text, AutoSize = true, Location = new Point(x, y-50) };
                 btn.Click += handler;
                 Controls.Add(btn);
                 x += btn.Width + espace;

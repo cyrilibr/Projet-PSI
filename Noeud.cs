@@ -8,45 +8,64 @@ namespace Projet_PSI
     /// <typeparam name="T">Type des données contenues dans le nœud</typeparam>
     public class Noeud<T>
     {
-        /// <summary>
-        /// Identifiant unique du nœud.
-        /// </summary>
-        public int Id { get; set; }
+        private int id;
+        private T data;//Données de type T associées au nœud
+        private List<Noeud<T>> voisins;//Liste des nœuds voisins
 
         /// <summary>
-        /// Données associées au nœud.
+        /// Obtient ou définit les identifiant associées au nœud.
         /// </summary>
-        public T Data { get; set; }
-
-        /// <summary>
-        /// Liste des nœuds voisins.
-        /// </summary>
-        public List<Noeud<T>> Voisins { get; private set; }
-
-        /// <summary>
-        /// Constructeur d’un nœud.
-        /// </summary>
-        /// <param name="id">Identifiant du nœud</param>
-        /// <param name="data">Données du nœud</param>
-        public Noeud(int id, T data)
+        public int Id
         {
-            Id = id;
-            Data = data;
-            Voisins = new List<Noeud<T>>();
+            get { return id; }
+            set { id = value; }
         }
 
         /// <summary>
-        /// Ajoute un voisin s’il n’est pas déjà présent.
+        /// Obtient ou définit les données de type T associées au nœud.
         /// </summary>
-        /// <param name="voisin">Nœud voisin à ajouter</param>
+        public T Data
+        {
+            get { return data; }
+            set { data = value; }
+        }
+
+        /// <summary>
+        /// Obtient la liste des voisins du nœud.
+        /// </summary>
+        public List<Noeud<T>> Voisins
+        {
+            get { return voisins; }
+        }
+
+        /// <summary>
+        /// Constructeur d’un nœud générique.
+        /// </summary>
+        /// <param name="id">Identifiant unique.</param>
+        /// <param name="data">Donnée générique pour le nœud.</param>
+        public Noeud(int id, T data)
+        {
+            this.id = id;
+            this.data = data;
+            this.voisins = new List<Noeud<T>>();
+        }
+
+        /// <summary>
+        /// Ajoute un voisin à la liste de voisins du nœud.
+        /// </summary>
+        /// <param name="voisin">Nœud voisin à ajouter.</param>
         public void AjouterVoisin(Noeud<T> voisin)
         {
-            if (!Voisins.Contains(voisin))
+            if (!voisins.Contains(voisin))
             {
-                Voisins.Add(voisin);
+                voisins.Add(voisin);
             }
         }
 
+        /// <summary>
+        /// Retourne une chaîne de caractères représentant le nœud.
+        /// </summary>
+        /// <returns>Une représentation textuelle du nœud.</returns>
         public override string ToString()
         {
             return $"Noeud {Id} : {Data}";

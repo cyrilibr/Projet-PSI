@@ -19,7 +19,6 @@ namespace Projet_PSI
 
             if (choix == "1")
             {
-                // Authentification utilisateur selon rôle
                 Modules.ModuleAuthentification.Lancer(graphe);
             }
             else if (choix == "2")
