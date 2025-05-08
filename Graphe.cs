@@ -6,6 +6,7 @@ namespace Projet_PSI
 {
     public class Graphe<T>
     {
+
         private Dictionary<int, Noeud<T>> noeuds;
         private List<Lien<T>> liens;
         private int[,] matriceAdjacence;
