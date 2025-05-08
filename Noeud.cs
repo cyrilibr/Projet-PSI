@@ -12,6 +12,9 @@ namespace Projet_PSI
         private T data;//Données de type T associées au nœud
         private List<Noeud<T>> voisins;//Liste des nœuds voisins
 
+        /// <summary>
+        /// Obtient ou définit les identifiant associées au nœud.
+        /// </summary>
         public int Id
         {
             get { return id; }
