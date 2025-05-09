@@ -7,361 +7,448 @@ namespace Projet_PSI
 {
     public class Graphe<T>
     {
-        private Dictionary<int, Noeud<T>> noeuds;
-        private List<Lien<T>> liens; // Conserve une trace de tous les liens pour certains algos
-        private int[,] matriceAdjacence; // Représente les poids des arêtes orientées noeud_i -> noeud_j
-        private int taille; // Taille max (utilisée pour la matrice)
+        private Dictionary<int, Noeud<T>> noeuds;// Associe ID -> Noeud<T>
+        private List<Lien<T>> liens;// Liste des liens (arêtes)
+        private int[,] matriceAdjacence;// Matrice d’adjacence
+        private int taille;// Nombre maximal de nœuds (dimensions de la matrice)
 
-        public Dictionary<int, Noeud<T>> Noeuds => noeuds;
-        public List<Lien<T>> Liens => liens;
-        public int Taille => taille;
-
-
-        public Graphe(int maxTaille) // La taille est pour la matrice d'adjacence
+        /// <summary>
+        /// Dictionnaire des nœuds : associe un identifiant entier à un Noeud<T>.
+        /// </summary>
+        public Dictionary<int, Noeud<T>> Noeuds
         {
-            this.taille = maxTaille;
-            noeuds = new Dictionary<int, Noeud<T>>();
-            liens = new List<Lien<T>>();
-            // Initialiser la matrice avec 0 (pas de lien) ou une valeur signalant l'absence de lien si 0 est un poids valide.
-            // Pour Dijkstra, int.MaxValue est mieux si le poids ne peut pas être 0.
-            // Mais ici, 0 dans matrice = pas de lien. Poids > 0 = lien avec ce poids.
-            matriceAdjacence = new int[this.taille, this.taille];
+            get { return noeuds; }
         }
 
+        /// <summary>
+        /// Liste des liens du graphe.
+        /// </summary>
+        public List<Lien<T>> Liens
+        {
+            get { return liens; }
+        }
+
+        /// <summary>
+        /// Constructeur du graphe générique.
+        /// </summary>
+        /// <param name="taille">Taille maximale (pour la matrice d’adjacence).</param>
+        public Graphe(int taille)
+        {
+            this.taille = taille;
+            this.noeuds = new Dictionary<int, Noeud<T>>();
+            this.liens = new List<Lien<T>>();
+            this.matriceAdjacence = new int[taille, taille];
+        }
+
+        /// <summary>
+        /// Ajoute un nœud au graphe.
+        /// </summary>
+        /// <param name="id">Identifiant unique du nœud.</param>
+        /// <param name="data">Donnée de type T à stocker dans le nœud.</param>
         public void AjouterNoeud(int id, T data)
         {
-            if (id >= taille)
-            {
-                throw new ArgumentOutOfRangeException(nameof(id), $"L'ID du noeud ({id}) dépasse la taille maximale du graphe ({taille - 1}).");
-            }
             if (!noeuds.ContainsKey(id))
             {
                 noeuds[id] = new Noeud<T>(id, data);
             }
         }
 
-        // Par défaut, un lien est orienté de id1 vers id2.
-        // Si bidirectionnel est true, un lien est aussi créé de id2 vers id1 implicitement (pour les algos)
-        // ou explicitement si l'appelant le gère (deux appels à AjouterLien).
-        // Je vais opter pour: cette méthode ajoute un lien orienté (id1 -> id2).
-        // L'appelant (GrapheLoader) doit faire un second appel si la liaison est bidirectionnelle.
-        public void AjouterLienOriente(int idOrigine, int idDestination, int poids = 1)
+        /// <summary>
+        /// Ajoute un lien (arête) entre deux nœuds existants du graphe.
+        /// </summary>
+        /// <param name="id1">Identifiant du premier nœud.</param>
+        /// <param name="id2">Identifiant du second nœud.</param>
+        /// <param name="poids">Poids du lien (1 par défaut).</param>
+        public void AjouterLien(int id1, int id2, int poids = 1)
         {
-            if (poids <= 0) throw new ArgumentException("Le poids d'un lien doit être positif.", nameof(poids));
-            if (idOrigine >= taille || idDestination >= taille)
-            {
-                throw new ArgumentOutOfRangeException("L'ID d'un des noeuds dépasse la taille maximale du graphe.");
-            }
+            if (!noeuds.ContainsKey(id1) || !noeuds.ContainsKey(id2)) return;
 
-            if (noeuds.ContainsKey(idOrigine) && noeuds.ContainsKey(idDestination))
-            {
-                var noeudOrigine = noeuds[idOrigine];
-                var noeudDestination = noeuds[idDestination];
+            var n1 = noeuds[id1];
+            var n2 = noeuds[id2];
 
-                // Vérifier si un lien existe déjà dans cette direction pour éviter les doublons dans la liste des liens
-                // (la matrice d'adjacence l'écraserait simplement)
-                if (!liens.Any(l => l.Noeud1 == noeudOrigine && l.Noeud2 == noeudDestination))
-                {
-                    liens.Add(new Lien<T>(noeudOrigine, noeudDestination, poids, bidirectionnel: false)); // Marqué comme non-bidirectionnel par défaut
-                }
+            liens.Add(new Lien<T>(n1, n2, poids));
 
-                noeudOrigine.AjouterVoisin(noeudDestination); // NoeudDestination est un successeur de NoeudOrigine
-                matriceAdjacence[idOrigine, idDestination] = poids;
-            }
-            else
+            n1.AjouterVoisin(n2);
+            n2.AjouterVoisin(n1);
+
+            // Si un poids existe déjà, on garde le plus GRAND
+            int actuel = matriceAdjacence[id1, id2];
+            if (poids > actuel)
             {
-                Console.WriteLine($"Attention: Nœud(s) non trouvé(s) pour le lien {idOrigine}->{idDestination}. Lien non ajouté.");
+                matriceAdjacence[id1, id2] = poids;
+                matriceAdjacence[id2, id1] = poids;
             }
         }
 
+        /// <summary>
+        /// Vérifie si un lien existe entre deux nœuds (basé sur la matrice d’adjacence).
+        /// </summary>
+        /// <param name="id1">Identifiant du premier nœud.</param>
+        /// <param name="id2">Identifiant du second nœud.</param>
+        /// <returns>Vrai si un lien existe, faux sinon.</returns>
         public bool ExisteLien(int id1, int id2)
         {
-            if (id1 >= taille || id2 >= taille) return false;
-            return matriceAdjacence[id1, id2] > 0; // Poids > 0 signifie lien
+            return matriceAdjacence[id1, id2] != 0;
         }
 
+        /// <summary>
+        /// Affiche la liste d’adjacence du graphe.
+        /// </summary>
+        /// <returns>Une chaîne représentant la liste d’adjacence.</returns>
         public string AfficherListeAdjacence()
         {
-            // Affiche les successeurs
-            return string.Join("\n", noeuds.Values.OrderBy(n => n.Id).Select(kvp => $"{kvp.Data} -> {string.Join(", ", kvp.Voisins.Select(v => v.Data))}"));
+            string repo = "";
+            foreach (var noeudKvp in noeuds)
+            {
+                var noeud = noeudKvp.Value;
+                repo += $"\n {noeud.Data} -> ";
+                foreach (var voisin in noeud.Voisins)
+                {
+                    repo += $"{voisin.Data}  ";
+                }
+            }
+            return repo;
         }
 
+        /// <summary>
+        /// Affiche la matrice d’adjacence du graphe.
+        /// </summary>
+        /// <returns>Une chaîne représentant la matrice.</returns>
         public string AfficherMatriceAdjacence()
         {
-            var result = "    ";
-            for (int j = 0; j < taille && noeuds.ContainsKey(j); j++) result += $"{j,3} ";
-            result += "\n----";
-            for (int j = 0; j < taille && noeuds.ContainsKey(j); j++) result += "----";
-            result += "\n";
-
+            string repo = "\n";
             for (int i = 0; i < taille; i++)
             {
-                if (!noeuds.ContainsKey(i)) continue; // Ne pas afficher lignes pour noeuds non existants
-                result += $"{i,3}| ";
                 for (int j = 0; j < taille; j++)
                 {
-                    if (!noeuds.ContainsKey(j)) continue;
-                    result += $"{matriceAdjacence[i, j],3} ";
+                    repo += $"{matriceAdjacence[i, j]} ";
                 }
-                result += "\n";
+                repo += "\n";
             }
-            return result;
+            return repo;
         }
 
-        public bool EstConnexe() // Pour un graphe orienté, on parle plutôt de "fortement connexe"
+        /// <summary>
+        /// Parcours en largeur (BFS) à partir du nœud d’identifiant idDepart.
+        /// </summary>
+        /// <param name="idDepart">Identifiant du nœud de départ.</param>
+        /// <returns>Une chaîne représentant l’ordre de visite.</returns>
+        public string ParcoursLargeur(int idDepart)
         {
-            // Cette implémentation vérifie la connexité faible (si le graphe sous-jacent non orienté est connexe)
-            if (noeuds.Count == 0) return false;
-            var visite = new HashSet<int>();
-            var file = new Queue<int>();
-            var depart = noeuds.Keys.First();
-            file.Enqueue(depart);
-            visite.Add(depart);
+            string repo = "\n";
+            if (!noeuds.ContainsKey(idDepart)) return repo;
+
+            HashSet<int> visite = new HashSet<int>();
+            Queue<int> file = new Queue<int>();
+
+            file.Enqueue(idDepart);
+            visite.Add(idDepart);
 
             while (file.Count > 0)
             {
-                var courantId = file.Dequeue();
-                var courantNoeud = noeuds[courantId];
+                int courantId = file.Dequeue();
+                Noeud<T> courant = noeuds[courantId];
 
-                // Parcours des successeurs
-                foreach (var voisin in courantNoeud.Voisins)
-                {
-                    if (visite.Add(voisin.Id))
-                        file.Enqueue(voisin.Id);
-                }
-                // Parcours des prédécesseurs (pour connexité faible)
-                foreach (var noeudPotentielPredecesseur in noeuds.Values)
-                {
-                    if (noeudPotentielPredecesseur.Voisins.Contains(courantNoeud)) // Si courantNoeud est un successeur de noeudPotentielPredecesseur
-                    {
-                        if (visite.Add(noeudPotentielPredecesseur.Id))
-                            file.Enqueue(noeudPotentielPredecesseur.Id);
-                    }
-                }
-            }
-            return visite.Count == noeuds.Count;
-        }
+                repo += $"{courant.Data} ";
 
-        public bool ContientCycle()
-        {
-            var enCoursDeVisite = new HashSet<int>(); // Noeuds dans la pile de récursion DFS actuelle
-            var visite = new HashSet<int>();          // Noeuds déjà complètement visités
-
-            foreach (var id in noeuds.Keys)
-            {
-                if (!visite.Contains(id))
-                {
-                    if (DFS_Cycle_Oriente(id, visite, enCoursDeVisite))
-                        return true;
-                }
-            }
-            return false;
-        }
-
-        private bool DFS_Cycle_Oriente(int idNoeud, HashSet<int> visite, HashSet<int> enCoursDeVisite)
-        {
-            visite.Add(idNoeud);
-            enCoursDeVisite.Add(idNoeud);
-
-            if (noeuds.TryGetValue(idNoeud, out Noeud<T> noeudCourant))
-            {
-                foreach (var voisin in noeudCourant.Voisins) // Voisins sont des successeurs
+                foreach (var voisin in courant.Voisins)
                 {
                     if (!visite.Contains(voisin.Id))
                     {
-                        if (DFS_Cycle_Oriente(voisin.Id, visite, enCoursDeVisite))
-                            return true;
-                    }
-                    else if (enCoursDeVisite.Contains(voisin.Id)) // Arc arrière vers un noeud en cours de visite
-                    {
-                        return true;
+                        visite.Add(voisin.Id);
+                        file.Enqueue(voisin.Id);
                     }
                 }
             }
-            enCoursDeVisite.Remove(idNoeud); // Retirer de la pile de récursion
+            return repo;
+        }
+
+        /// <summary>
+        /// Parcours en profondeur (DFS) à partir du nœud d’identifiant idDepart.
+        /// </summary>
+        /// <param name="idDepart">Identifiant du nœud de départ.</param>
+        /// <returns>Une chaîne représentant l’ordre de visite.</returns>
+        public string ParcoursProfondeur(int idDepart)
+        {
+            string repo = "\n";
+            if (!noeuds.ContainsKey(idDepart)) return repo;
+
+            HashSet<int> visite = new HashSet<int>();
+            Stack<int> pile = new Stack<int>();
+
+            pile.Push(idDepart);
+
+            while (pile.Count > 0)
+            {
+                int courantId = pile.Pop();
+                if (!visite.Contains(courantId))
+                {
+                    visite.Add(courantId);
+                    Noeud<T> courant = noeuds[courantId];
+                    repo += $"{courant.Data} ";
+
+                    foreach (var voisin in courant.Voisins)
+                    {
+                        if (!visite.Contains(voisin.Id))
+                        {
+                            pile.Push(voisin.Id);
+                        }
+                    }
+                }
+            }
+            return repo;
+        }
+
+        /// <summary>
+        /// Vérifie si le graphe est connexe : il existe un chemin entre tous les nœuds.
+        /// </summary>
+        /// <returns>Vrai si le graphe est connexe, faux sinon.</returns>
+        public bool EstConnexe()
+        {
+            if (noeuds.Count == 0) return false;
+
+            var visite = new HashSet<int>();
+            var file = new Queue<int>();
+
+            int premierNoeud = noeuds.Keys.First();
+
+            file.Enqueue(premierNoeud);
+            visite.Add(premierNoeud);
+
+            while (file.Count > 0)
+            {
+                int courantId = file.Dequeue();
+                Noeud<T> courantNode = noeuds[courantId];
+
+                foreach (var voisin in courantNode.Voisins)
+                {
+                    if (!visite.Contains(voisin.Id))
+                    {
+                        visite.Add(voisin.Id);
+                        file.Enqueue(voisin.Id);
+                    }
+                }
+            }
+
+            return (visite.Count == noeuds.Count);
+        }
+
+        /// <summary>
+        /// Détermine si le graphe contient au moins un cycle.
+        /// </summary>
+        /// <returns>Vrai si un cycle est détecté, faux sinon.</returns>
+        public bool ContientCycle()
+        {
+            var visite = new HashSet<int>();
+            var recStack = new HashSet<int>();
+
+            foreach (var idNoeud in noeuds.Keys)
+            {
+                if (!visite.Contains(idNoeud))
+                {
+                    if (DetecterCycle(idNoeud, visite, recStack, -1))
+                        return true;
+                }
+            }
             return false;
         }
 
+        /// <summary>
+        /// Fonction récursive pour détecter un cycle en DFS.
+        /// </summary>
+        /// <param name="idNoeud">Identifiant du nœud en cours de traitement.</param>
+        /// <param name="visite">Ensemble des nœuds déjà visités.</param>
+        /// <param name="recStack">Chemin actuel (pile de récursion).</param>
+        /// <param name="parent">ID du nœud parent (pour éviter de confondre arête arrière et arête vers le parent).</param>
+        private bool DetecterCycle(int idNoeud, HashSet<int> visite, HashSet<int> recStack, int parent)
+        {
+            visite.Add(idNoeud);
+            recStack.Add(idNoeud);
 
+            var courant = noeuds[idNoeud];
+            foreach (var voisin in courant.Voisins)
+            {
+                if (!visite.Contains(voisin.Id))
+                {
+                    if (DetecterCycle(voisin.Id, visite, recStack, idNoeud))
+                        return true;
+                }
+                else if (voisin.Id != parent && recStack.Contains(voisin.Id))
+                {
+                    return true;
+                }
+            }
+
+            recStack.Remove(idNoeud);
+            return false;
+        }
+
+        /// <summary>
+        /// Renvoie la liste des nœuds (IDs) constituant le plus court chemin entre startId et endId,
+        /// selon Dijkstra. (Suppose que les poids sont positifs.)
+        /// </summary>
         public List<int> CheminDijkstra(int startId, int endId)
         {
-            if (!noeuds.ContainsKey(startId) || !noeuds.ContainsKey(endId))
-                return new List<int>(); // Départ ou arrivée non existant
+            var dist = new Dictionary<int, int>();
+            var prev = new Dictionary<int, int?>();
+            var nonVisites = new HashSet<int>(noeuds.Keys);
 
-            var dist = noeuds.ToDictionary(n => n.Key, _ => int.MaxValue);
-            var prev = noeuds.ToDictionary(n => n.Key, _ => (int?)null);
-            // Optimisation : utiliser une PriorityQueue (ou simuler avec SortedSet/SortedList)
-            var pq = new SortedSet<(int d, int id)>(Comparer<(int d, int id)>.Create((a, b) =>
-                a.d == b.d ? a.id.CompareTo(b.id) : a.d.CompareTo(b.d)
-            ));
-
-
-            dist[startId] = 0;
-            pq.Add((0, startId));
-
-            while (pq.Count > 0)
+            foreach (var id in noeuds.Keys)
             {
-                var (d_u, u) = pq.Min;
-                pq.Remove(pq.Min);
+                dist[id] = int.MaxValue;
+                prev[id] = null;
+            }
+            dist[startId] = 0;
 
-                if (u == endId) break; // Chemin trouvé
-                if (d_u == int.MaxValue) break; // Autres noeuds inatteignables
-
-                if (!noeuds.ContainsKey(u)) continue; // Précaution
-
-                foreach (var voisin in noeuds[u].Voisins) // Voisins sont les successeurs
+            while (nonVisites.Count > 0)
+            {
+                int u = -1;
+                int minDist = int.MaxValue;
+                foreach (int id in nonVisites)
                 {
-                    int poidsArete = matriceAdjacence[u, voisin.Id];
-                    if (poidsArete > 0) // S'il y a un lien
+                    if (dist[id] < minDist)
                     {
-                        int alt = dist[u] + poidsArete;
-                        if (alt < dist[voisin.Id])
-                        {
-                            pq.Remove((dist[voisin.Id], voisin.Id)); // Nécessaire pour màj dans SortedSet
-                            dist[voisin.Id] = alt;
-                            prev[voisin.Id] = u;
-                            pq.Add((alt, voisin.Id));
-                        }
+                        minDist = dist[id];
+                        u = id;
+                    }
+                }
+
+                if (u == -1 || u == endId) break;
+                nonVisites.Remove(u);
+
+                foreach (var voisin in noeuds[u].Voisins)
+                {
+                    int newDist = dist[u] + matriceAdjacence[u, voisin.Id];
+                    if (newDist < dist[voisin.Id])
+                    {
+                        dist[voisin.Id] = newDist;
+                        prev[voisin.Id] = u;
                     }
                 }
             }
 
             var chemin = new List<int>();
-            if (dist[endId] == int.MaxValue)
-                return chemin; // Pas de chemin
-
-            for (int? at = endId; at != null; at = prev[at.Value])
-                chemin.Add(at.Value);
+            int? current = endId;
+            while (current != null)
+            {
+                chemin.Add(current.Value);
+                current = prev[current.Value];
+            }
             chemin.Reverse();
+
+            if (dist[endId] == int.MaxValue) chemin.Clear();
+
             return chemin;
         }
 
-        // Bellman-Ford et Floyd-Warshall restent largement similaires
-        // Bellman-Ford itère sur tous les `liens`.
-        // Floyd-Warshall utilise `matriceAdjacence`.
-        // Ils fonctionneront correctement avec la `matriceAdjacence` orientée.
-
+        /// <summary>
+        /// Renvoie la liste (IDs) du plus court chemin entre startId et endId,
+        /// selon Bellman-Ford (gère éventuellement des poids négatifs, sans cycle négatif).
+        /// </summary>
         public List<int> CheminBellmanFord(int startId, int endId)
         {
-            if (!noeuds.ContainsKey(startId) || !noeuds.ContainsKey(endId)) return new List<int>();
+            var dist = new Dictionary<int, int>();
+            var prev = new Dictionary<int, int?>();
 
-            var dist = noeuds.ToDictionary(n => n.Key, _ => (long)int.MaxValue); // Use long for intermediate sums
-            var prev = noeuds.ToDictionary(n => n.Key, _ => (int?)null);
+            foreach (var id in noeuds.Keys)
+            {
+                dist[id] = int.MaxValue;
+                prev[id] = null;
+            }
             dist[startId] = 0;
 
             for (int i = 0; i < noeuds.Count - 1; i++)
             {
-                foreach (var lien in liens) // Les liens sont déjà orientés Noeud1 -> Noeud2
+                bool changed = false;
+                foreach (var lien in liens)
                 {
                     int u = lien.Noeud1.Id;
                     int v = lien.Noeud2.Id;
                     int w = lien.Poids;
 
-                    if (dist.ContainsKey(u) && dist[u] != int.MaxValue && dist[u] + w < dist[v])
+                    if (dist[u] != int.MaxValue && dist[u] + w < dist[v])
                     {
                         dist[v] = dist[u] + w;
                         prev[v] = u;
+                        changed = true;
                     }
-                    // Si le graphe était non-orienté ET que les liens stockés ne sont qu'un sens,
-                    // il faudrait aussi vérifier le lien inverse. Mais ici, `liens` doit contenir tous les liens orientés.
-                    if (lien.Bidirectionnel) // Si le Lien a été marqué comme bidirectionnel à la création
+                    if (dist[v] != int.MaxValue && dist[v] + w < dist[u])
                     {
-                        if (dist.ContainsKey(v) && dist[v] != int.MaxValue && dist[v] + w < dist[u])
-                        {
-                            dist[u] = dist[v] + w;
-                            prev[u] = v;
-                        }
+                        dist[u] = dist[v] + w;
+                        prev[u] = v;
+                        changed = true;
                     }
                 }
+                if (!changed) break;
             }
-
-            // Vérification de cycle négatif (optionnel ici si poids tjrs > 0)
-            foreach (var lien in liens)
-            {
-                int u = lien.Noeud1.Id;
-                int v = lien.Noeud2.Id;
-                int w = lien.Poids;
-                if (dist.ContainsKey(u) && dist[u] != int.MaxValue && dist[u] + w < dist[v])
-                {
-                    Console.WriteLine("Attention : Cycle de poids négatif détecté par Bellman-Ford.");
-                    return new List<int>(); // Ou gérer autrement
-                }
-            }
-
 
             var chemin = new List<int>();
-            if (!dist.ContainsKey(endId) || dist[endId] == int.MaxValue) return chemin; // Pas de chemin
-
-            for (int? at = endId; at != null; at = prev[at.Value])
-                chemin.Add(at.Value);
+            int? current = endId;
+            while (current != null)
+            {
+                chemin.Add(current.Value);
+                current = prev[current.Value];
+            }
             chemin.Reverse();
+
+            if (dist[endId] == int.MaxValue) chemin.Clear();
+
             return chemin;
         }
 
-
+        /// <summary>
+        /// Renvoie la liste (IDs) du chemin entre startId et endId
+        /// en utilisant l'algorithme Floyd-Warshall (all pairs shortest path).
+        /// </summary>
         public List<int> CheminFloydWarshall(int startId, int endId)
         {
-            if (startId >= taille || endId >= taille || !noeuds.ContainsKey(startId) || !noeuds.ContainsKey(endId)) return new List<int>();
+            int n = this.taille;
+            int[,] distFW = new int[n, n];
+            int[,] nextFW = new int[n, n];
 
-            var dist = new long[taille, taille];
-            var next = new int[taille, taille]; // next[i,j] est le prochain noeud sur le chemin de i à j
-
-            for (int i = 0; i < taille; i++)
+            for (int i = 0; i < n; i++)
             {
-                for (int j = 0; j < taille; j++)
+                for (int j = 0; j < n; j++)
                 {
-                    if (i == j)
-                    {
-                        dist[i, j] = 0;
-                        next[i, j] = j;
-                    }
-                    else if (matriceAdjacence[i, j] > 0) // Lien direct existe
-                    {
-                        dist[i, j] = matriceAdjacence[i, j];
-                        next[i, j] = j;
-                    }
+                    if (i == j) distFW[i, j] = 0;
                     else
                     {
-                        dist[i, j] = int.MaxValue; // Simule l'infini
-                        next[i, j] = -1; // Pas de chemin direct
+                        if (matriceAdjacence[i, j] == 0) distFW[i, j] = 100000000;
+                        else distFW[i, j] = matriceAdjacence[i, j];
                     }
+                    if (matriceAdjacence[i, j] != 0) nextFW[i, j] = j;
+                    else nextFW[i, j] = -1;
                 }
             }
 
-            // Il faut itérer sur les ID réels des noeuds présents plutôt que 0..taille-1
-            // Ou s'assurer que les IDs de noeuds sont compacts 0..N-1
-            // Pour simplifier, si on utilise Graphe(maxIdStation + 1), c'est bon.
-
-            List<int> idsNoeudsPresents = noeuds.Keys.ToList();
-
-            foreach (int k_nodeId in idsNoeudsPresents) // k est un noeud intermédiaire
+            for (int k = 0; k < n; k++)
             {
-                foreach (int i_nodeId in idsNoeudsPresents) // i est le départ
+                for (int i = 0; i < n; i++)
                 {
-                    foreach (int j_nodeId in idsNoeudsPresents) // j est l'arrivée
+                    for (int j = 0; j < n; j++)
                     {
-                        if (dist[i_nodeId, k_nodeId] != int.MaxValue && dist[k_nodeId, j_nodeId] != int.MaxValue &&
-                            dist[i_nodeId, k_nodeId] + dist[k_nodeId, j_nodeId] < dist[i_nodeId, j_nodeId])
+                        if (distFW[i, k] + distFW[k, j] < distFW[i, j])
                         {
-                            dist[i_nodeId, j_nodeId] = dist[i_nodeId, k_nodeId] + dist[k_nodeId, j_nodeId];
-                            next[i_nodeId, j_nodeId] = next[i_nodeId, k_nodeId];
+                            distFW[i, j] = distFW[i, k] + distFW[k, j];
+                            nextFW[i, j] = nextFW[i, k];
                         }
                     }
                 }
             }
 
-            if (dist[startId, endId] == int.MaxValue || next[startId, endId] == -1)
-                return new List<int>(); // Pas de chemin
+            if (distFW[startId, endId] >= 100000000) return new List<int>();
 
-            var chemin = new List<int> { startId };
-            int u = startId;
-            while (u != endId)
+            var path = new List<int>();
+            int current = startId;
+            while (current != endId)
             {
-                u = next[u, endId];
-                if (u == -1) return new List<int>(); // Chemin cassé (ne devrait pas arriver si dist[startId,endId] n'est pas infini)
-                chemin.Add(u);
+                path.Add(current);
+                current = nextFW[current, endId];
+                if (current == -1) break;
             }
-            return chemin;
+            path.Add(endId);
+
+            return path;
         }
     }
 }

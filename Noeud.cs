@@ -5,25 +5,57 @@ namespace Projet_PSI
 {
     public class Noeud<T>
     {
-        public int Id { get; set; }
-        public T Data { get; set; }
+        private int id;
+        private T data;//Données de type T associées au nœud
+        private List<Noeud<T>> voisins;//Liste des nœuds voisins
 
-        // Dans un graphe orienté, Voisins représente les successeurs (nœuds vers lesquels on peut aller)
-        public List<Noeud<T>> Voisins { get; private set; }
-
-        public Noeud(int id, T data)
+        /// <summary>
+        /// Obtient ou définit les identifiant associées au nœud.
+        /// </summary>
+        public int Id
         {
-            Id = id;
-            Data = data;
-            Voisins = new List<Noeud<T>>();
+            get { return id; }
+            set { id = value; }
         }
 
-        // Ajoute un voisin/successeur
+        /// <summary>
+        /// Obtient ou définit les données de type T associées au nœud.
+        /// </summary>
+        public T Data
+        {
+            get { return data; }
+            set { data = value; }
+        }
+
+        /// <summary>
+        /// Obtient la liste des voisins du nœud.
+        /// </summary>
+        public List<Noeud<T>> Voisins
+        {
+            get { return voisins; }
+        }
+
+        /// <summary>
+        /// Constructeur d’un nœud générique.
+        /// </summary>
+        /// <param name="id">Identifiant unique.</param>
+        /// <param name="data">Donnée générique pour le nœud.</param>
+        public Noeud(int id, T data)
+        {
+            this.id = id;
+            this.data = data;
+            this.voisins = new List<Noeud<T>>();
+        }
+
+        /// <summary>
+        /// Ajoute un voisin à la liste de voisins du nœud.
+        /// </summary>
+        /// <param name="voisin">Nœud voisin à ajouter.</param>
         public void AjouterVoisin(Noeud<T> voisin)
         {
-            if (!Voisins.Contains(voisin))
+            if (!voisins.Contains(voisin))
             {
-                Voisins.Add(voisin);
+                voisins.Add(voisin);
             }
         }
 
@@ -32,7 +64,10 @@ namespace Projet_PSI
             Voisins.Remove(voisin);
         }
 
-
+        /// <summary>
+        /// Retourne une chaîne de caractères représentant le nœud.
+        /// </summary>
+        /// <returns>Une représentation textuelle du nœud.</returns>
         public override string ToString()
         {
             return $"Noeud {Id} : {Data}";

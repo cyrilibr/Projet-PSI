@@ -1,6 +1,7 @@
 ﻿using System.Drawing.Drawing2D;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
@@ -10,46 +11,47 @@ namespace Projet_PSI
 {
     /// <summary>
     /// Formulaire de visualisation du graphe de stations avec positions géographiques,
-    /// affichage des arêtes orientées, pondérées en temps de transport, et coloration.
-    /// Permet de choisir dynamiquement les IDs de départ et d'arrivée pour les algorithmes.
+    /// affichage des arêtes orientées, pondérées, et coloration.
     /// </summary>
     public class FenetreGraphe<T> : Form
     {
-        private readonly Graphe<T> graphe;
-        private Dictionary<int, PointF> positions = new Dictionary<int, PointF>();
-        private const int Rayon = 10;
-        private const int MargeX = 50;
-        private const int MargeY = 50;
+        private Graphe<T> graphe;
+        private Dictionary<int, PointF> positions;
+        private const int rayon = 10;
+        private const int margeX = 50;
+        private const int margeY = 50;
 
-        // Contrôles pour choix des ID
         private NumericUpDown nudDepart;
         private NumericUpDown nudArrivee;
 
-        // Boutons
-        private Button btnReset, btnListeAdj, btnMatrice, btnBFS, btnDFS,
-                       btnConnexe, btnCycle, btnDijkstra, btnBellman,
-                       btnFloyd, btnComparer, btnColoration;
+        private int DepartId => (int)nudDepart?.Value;
+        private int ArriveeId => (int)nudArrivee?.Value;
 
-        // États de visites / coloration
-        private readonly HashSet<int> bfsVisites = new();
-        private readonly HashSet<int> dfsVisites = new();
-        private readonly HashSet<int> dijkstraVisites = new();
-        private readonly HashSet<int> bellmanVisites = new();
-        private readonly HashSet<int> floydVisites = new();
-        private readonly Dictionary<int, Brush> coloration = new();
+        private Button btnReset;
+        private Button btnListeAdj;
+        private Button btnMatrice;
+        private Button btnBFS;
+        private Button btnDFS;
+        private Button btnConnexe;
+        private Button btnCycle;
+        private Button btnDijkstra;
+        private Button btnBellman;
+        private Button btnFloyd;
+        private Button btnComparer;
+        private Button btnColoration;
+
+        private HashSet<int> bfsVisites = new HashSet<int>();
+        private HashSet<int> dfsVisites = new HashSet<int>();
+        private HashSet<int> dijkstraVisites = new HashSet<int>();
+        private HashSet<int> bellmanVisites = new HashSet<int>();
+        private HashSet<int> floydVisites = new HashSet<int>();
+        private Dictionary<int, Brush> coloration = new Dictionary<int, Brush>();
 
         public FenetreGraphe(Graphe<T> graphe)
         {
             this.graphe = graphe;
             Text = "Visualisation Géographique du Graphe";
             WindowState = FormWindowState.Maximized;
-            BackColor = Color.White;
-
-            // Optimisation du rendu
-            SetStyle(ControlStyles.OptimizedDoubleBuffer |
-                     ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.UserPaint, true);
-            DoubleBuffered = true;
 
             InitializeComponents();
             CalculatePositions();
@@ -58,16 +60,11 @@ namespace Projet_PSI
 
         private void InitializeComponents()
         {
-            int x = MargeX, y = MargeY, espace = 10;
+            int x = margeX;
+            int y = margeY;
+            int espace = 10;
 
-            // Label + NumericUpDown pour l'ID de départ
-            var lblDepart = new Label
-            {
-                Text = "Départ ID:",
-                Location = new Point(x, y),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9f, FontStyle.Regular)
-            };
+            var lblDepart = new Label { Text = "Départ ID :", Location = new Point(x, y), AutoSize = true };
             Controls.Add(lblDepart);
             x += lblDepart.Width + espace;
 
@@ -79,16 +76,9 @@ namespace Projet_PSI
                 Width = 60
             };
             Controls.Add(nudDepart);
-            x += nudDepart.Width + espace;
+            x += (int)nudDepart.Width + espace;
 
-            // Label + NumericUpDown pour l'ID d'arrivée
-            var lblArrivee = new Label
-            {
-                Text = "Arrivée ID:",
-                Location = new Point(x, y),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9f, FontStyle.Regular)
-            };
+            var lblArrivee = new Label { Text = "Arrivée ID :", Location = new Point(x, y), AutoSize = true };
             Controls.Add(lblArrivee);
             x += lblArrivee.Width + espace;
 
@@ -100,21 +90,11 @@ namespace Projet_PSI
                 Width = 60
             };
             Controls.Add(nudArrivee);
+            x += (int)nudArrivee.Width + espace;
 
-            // Passage à la ligne suivante pour les boutons
-            y += nudDepart.Height + espace;
-            x = MargeX;
-
-            // Méthode locale de création de boutons
             Button Create(string text, EventHandler handler)
             {
-                var btn = new Button
-                {
-                    Text = text,
-                    AutoSize = true,
-                    Location = new Point(x, y),
-                    Font = new Font("Segoe UI", 9f, FontStyle.Regular)
-                };
+                var btn = new Button { Text = text, AutoSize = true, Location = new Point(x, y - 50) };
                 btn.Click += handler;
                 Controls.Add(btn);
                 x += btn.Width + espace;
@@ -124,15 +104,15 @@ namespace Projet_PSI
             btnReset = Create("Réinitialiser", (s, e) => { ClearAll(); Invalidate(); });
             btnListeAdj = Create("Liste Adjacence", BoutonListeAdj_Click);
             btnMatrice = Create("Matrice Adjacence", BoutonMatriceAdj_Click);
-            btnBFS = Create("BFS (→ tous)", BoutonBFS_Click);
-            btnDFS = Create("DFS (→ tous)", BoutonDFS_Click);
+            btnBFS = Create("BFS (1->tous)", BoutonBFS_Click);
+            btnDFS = Create("DFS (1->tous)", BoutonDFS_Click);
             btnConnexe = Create("Est connexe ?", BoutonConnexe_Click);
             btnCycle = Create("Contient cycle ?", BoutonCycle_Click);
-            btnDijkstra = Create("Dijkstra", BoutonDijkstra_Click);
-            btnBellman = Create("Bellman–Ford", BoutonBellman_Click);
-            btnFloyd = Create("Floyd–Warshall", BoutonFloyd_Click);
-            btnComparer = Create("Comparer algos", BoutonComparer_Click);
-            btnColoration = Create("Coloration", BoutonColoration_Click);
+            btnDijkstra = Create("Dijkstra (1->3)", BoutonDijkstra_Click);
+            btnBellman = Create("Bellman (11->30)", BoutonBellman_Click);
+            btnFloyd = Create("Floyd (6->22)", BoutonFloyd_Click);
+            btnComparer = Create("Comparer Algos", BoutonComparer_Click);
+            btnColoration = Create("Coloration Graphe", BoutonColoration_Click);
         }
 
         private void CalculatePositions()
@@ -141,59 +121,47 @@ namespace Projet_PSI
                 .Select(n => n.Data as Station)
                 .Where(s => s != null)
                 .ToList();
+
             if (!stations.Any()) return;
 
-            double minLat = stations.Min(s => s.Latitude),
-                   maxLat = stations.Max(s => s.Latitude),
-                   minLon = stations.Min(s => s.Longitude),
-                   maxLon = stations.Max(s => s.Longitude);
+            double minLat = stations.Min(s => s.Latitude);
+            double maxLat = stations.Max(s => s.Latitude);
+            double minLon = stations.Min(s => s.Longitude);
+            double maxLon = stations.Max(s => s.Longitude);
 
-            float w = ClientSize.Width - 2 * MargeX;
-            float h = ClientSize.Height - 2 * MargeY;
-            positions.Clear();
+            float w = ClientSize.Width - 2 * margeX;
+            float h = ClientSize.Height - 2 * margeY;
+            positions = new Dictionary<int, PointF>();
 
             foreach (var kv in graphe.Noeuds)
             {
                 if (kv.Value.Data is Station s)
                 {
-                    float px = (float)((s.Longitude - minLon) / (maxLon - minLon) * w) + MargeX;
-                    float py = (float)((maxLat - s.Latitude) / (maxLat - minLat) * h) + MargeY;
+                    float px = (float)((s.Longitude - minLon) / (maxLon - minLon) * w) + margeX;
+                    float py = (float)((maxLat - s.Latitude) / (maxLat - minLat) * h) + margeY;
                     positions[kv.Key] = new PointF(px, py);
                 }
             }
         }
 
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            // Fond dégradé très esthétique
-            using var lg = new LinearGradientBrush(ClientRectangle,
-                                                    Color.LightSkyBlue,
-                                                    Color.White,
-                                                    90f);
-            e.Graphics.FillRectangle(lg, ClientRectangle);
-        }
-
         private void DessinerGraphe(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
             // Arêtes
             foreach (var lien in graphe.Liens)
             {
-                if (!positions.TryGetValue(lien.Noeud1.Id, out var p1) ||
-                    !positions.TryGetValue(lien.Noeud2.Id, out var p2))
-                    continue;
+                if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id)) continue;
+                var p1 = positions[lien.Noeud1.Id];
+                var p2 = positions[lien.Noeud2.Id];
 
-                if (lien.Bidirectionnel)
-                    DrawBidirectionalEdge(g, p1, p2, Pens.Gray);
-                else
-                    DrawDirectedEdge(g, p1, p2, Pens.Black);
+                // Flèche si non bidirectionnel
+                DrawArrow(g, p1, p2, lien.Bidirectionnel);
 
-                // Affichage du temps de transport au milieu
+                // Poids au milieu
                 var mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
-                g.DrawString($"{lien.Poids} min", Font, Brushes.DarkBlue, mid);
+                g.DrawString(lien.Poids.ToString(), Font, Brushes.DarkBlue, mid);
             }
 
             // Nœuds
@@ -202,15 +170,15 @@ namespace Projet_PSI
                 if (!positions.TryGetValue(kv.Key, out var pos)) continue;
 
                 Brush fill = Brushes.White;
-                if (coloration.ContainsKey(kv.Key)) fill = coloration[kv.Key];
+                if (coloration.TryGetValue(kv.Key, out var col)) fill = col;
                 else if (bfsVisites.Contains(kv.Key)) fill = Brushes.Yellow;
                 else if (dfsVisites.Contains(kv.Key)) fill = Brushes.Red;
                 else if (dijkstraVisites.Contains(kv.Key)) fill = Brushes.Green;
                 else if (bellmanVisites.Contains(kv.Key)) fill = Brushes.Violet;
                 else if (floydVisites.Contains(kv.Key)) fill = Brushes.Pink;
 
-                g.FillEllipse(fill, pos.X - Rayon, pos.Y - Rayon, 2 * Rayon, 2 * Rayon);
-                g.DrawEllipse(Pens.Blue, pos.X - Rayon, pos.Y - Rayon, 2 * Rayon, 2 * Rayon);
+                g.FillEllipse(fill, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
+                g.DrawEllipse(Pens.Blue, pos.X - rayon, pos.Y - rayon, 2 * rayon, 2 * rayon);
 
                 string lbl = (kv.Value.Data as Station)?.Libelle ?? kv.Key.ToString();
                 var sz = g.MeasureString(lbl, Font);
@@ -218,33 +186,27 @@ namespace Projet_PSI
             }
         }
 
-        private void DrawDirectedEdge(Graphics g, PointF a, PointF b, Pen pen)
+        private void DrawArrow(Graphics g, PointF a, PointF b, bool bidirectionnel)
         {
+
             const float arrowSize = 8f;
             float dx = b.X - a.X, dy = b.Y - a.Y;
             float len = (float)Math.Sqrt(dx * dx + dy * dy);
-            if (len < 0.1f) return;
+            if (len < 1e-3) return;
             float ux = dx / len, uy = dy / len;
-            var src = new PointF(a.X + ux * Rayon, a.Y + uy * Rayon);
-            var dst = new PointF(b.X - ux * Rayon, b.Y - uy * Rayon);
+            var src = new PointF(a.X + ux * rayon, a.Y + uy * rayon);
+            var dst = new PointF(b.X - ux * rayon, b.Y - uy * rayon);
 
-            g.DrawLine(pen, src, dst);
-            // Flèche
-            var perp = new PointF(-uy, ux);
-            var p1 = new PointF(dst.X - ux * arrowSize + perp.X * (arrowSize / 2),
-                                 dst.Y - uy * arrowSize + perp.Y * (arrowSize / 2));
-            var p2 = new PointF(dst.X - ux * arrowSize - perp.X * (arrowSize / 2),
-                                 dst.Y - uy * arrowSize - perp.Y * (arrowSize / 2));
-            g.FillPolygon(pen.Brush, new[] { dst, p1, p2 });
-        }
-
-        private void DrawBidirectionalEdge(Graphics g, PointF p1, PointF p2, Pen pen)
-        {
-            // Ligne simple
-            g.DrawLine(pen, p1, p2);
-            // Deux flèches opposées
-            DrawDirectedEdge(g, p1, p2, pen);
-            DrawDirectedEdge(g, p2, p1, pen);
+            g.DrawLine(Pens.Black, src, dst);
+            if (bidirectionnel)
+            {
+                var perp = new PointF(-uy, ux);
+                var p1 = new PointF(dst.X - ux * arrowSize + perp.X * arrowSize / 2,
+                                     dst.Y - uy * arrowSize + perp.Y * arrowSize / 2);
+                var p2 = new PointF(dst.X - ux * arrowSize - perp.X * arrowSize / 2,
+                                     dst.Y - uy * arrowSize - perp.Y * arrowSize / 2);
+                g.FillPolygon(Pens.Black.Brush, new[] { dst, p1, p2 });
+            }
         }
 
         private void ClearAll()
@@ -259,174 +221,174 @@ namespace Projet_PSI
 
         private void BoutonListeAdj_Click(object s, EventArgs e)
         {
-            var txt = "Liste d'adjacence :\r\n" + graphe.AfficherListeAdjacence();
+            string txt = "Liste d'adjacence:\n" + graphe.AfficherListeAdjacence();
             AfficherEnPleinEcran("Liste d'adjacence", txt);
         }
-
         private void BoutonMatriceAdj_Click(object s, EventArgs e)
         {
-            var txt = "Matrice d'adjacence :\r\n" + graphe.AfficherMatriceAdjacence();
+            string txt = "Matrice d'adjacence:\n" + graphe.AfficherMatriceAdjacence();
             AfficherEnPleinEcran("Matrice d'adjacence", txt);
         }
-
         private void BoutonConnexe_Click(object s, EventArgs e)
         {
             bool res = graphe.EstConnexe();
-            AfficherEnPleinEcran("Connexité", $"Le graphe est connexe ? {res}");
+            AfficherEnPleinEcran("Connexe", $"Le graphe est connexe ? {res}");
         }
-
         private void BoutonCycle_Click(object s, EventArgs e)
         {
             bool res = graphe.ContientCycle();
-            AfficherEnPleinEcran("Cycle dans le graphe", $"Le graphe contient un cycle ? {res}");
+            AfficherEnPleinEcran("Cycle", $"Le graphe contient un cycle ? {res}");
         }
-
         private void BoutonBFS_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value;
-            if (graphe.Noeuds.ContainsKey(start))
+            if (graphe.Noeuds.ContainsKey(DepartId))
             {
-                var queue = new Queue<int>();
-                queue.Enqueue(start);
-                bfsVisites.Add(start);
-                while (queue.Count > 0)
+                var q = new Queue<int>(); q.Enqueue(DepartId); bfsVisites.Add(DepartId);
+                while (q.Count > 0)
                 {
-                    int u = queue.Dequeue();
+                    int u = q.Dequeue();
                     foreach (var n in graphe.Noeuds[u].Voisins)
-                        if (bfsVisites.Add(n.Id))
-                            queue.Enqueue(n.Id);
+                        if (bfsVisites.Add(n.Id)) q.Enqueue(n.Id);
                 }
             }
             Invalidate();
         }
-
         private void BoutonDFS_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value;
-            if (graphe.Noeuds.ContainsKey(start))
+            if (graphe.Noeuds.ContainsKey(1))
             {
-                var stack = new Stack<int>();
-                stack.Push(start);
+                var stack = new Stack<int>(); stack.Push(1);
                 while (stack.Count > 0)
                 {
                     int u = stack.Pop();
                     if (dfsVisites.Add(u))
                         foreach (var n in graphe.Noeuds[u].Voisins)
-                            if (!dfsVisites.Contains(n.Id))
-                                stack.Push(n.Id);
+                            if (!dfsVisites.Contains(n.Id)) stack.Push(n.Id);
                 }
             }
             Invalidate();
         }
-
         private void BoutonDijkstra_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value, end = (int)nudArrivee.Value;
-            if (graphe.Noeuds.ContainsKey(start) && graphe.Noeuds.ContainsKey(end))
-                foreach (var id in graphe.CheminDijkstra(start, end))
+            if (graphe.Noeuds.ContainsKey(DepartId) && graphe.Noeuds.ContainsKey(ArriveeId))
+                foreach (var id in graphe.CheminDijkstra(DepartId, ArriveeId))
                     dijkstraVisites.Add(id);
             Invalidate();
         }
-
         private void BoutonBellman_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value, end = (int)nudArrivee.Value;
-            if (graphe.Noeuds.ContainsKey(start) && graphe.Noeuds.ContainsKey(end))
-                foreach (var id in graphe.CheminBellmanFord(start, end))
+            if (graphe.Noeuds.ContainsKey(DepartId) && graphe.Noeuds.ContainsKey(ArriveeId))
+                foreach (var id in graphe.CheminBellmanFord(DepartId, ArriveeId))
                     bellmanVisites.Add(id);
             Invalidate();
         }
-
         private void BoutonFloyd_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value, end = (int)nudArrivee.Value;
-            if (graphe.Noeuds.ContainsKey(start) && graphe.Noeuds.ContainsKey(end))
-                foreach (var id in graphe.CheminFloydWarshall(start, end))
+            if (graphe.Noeuds.ContainsKey(DepartId) && graphe.Noeuds.ContainsKey(ArriveeId))
+                foreach (var id in graphe.CheminFloydWarshall(DepartId, ArriveeId))
                     floydVisites.Add(id);
             Invalidate();
         }
-
         private void BoutonComparer_Click(object s, EventArgs e)
         {
             ClearAll();
-            int start = (int)nudDepart.Value, end = (int)nudArrivee.Value;
+            if (!graphe.Noeuds.ContainsKey(DepartId) || !graphe.Noeuds.ContainsKey(ArriveeId))
+                return;
+
             var results = new List<(string nom, long t, List<int> chemin)>();
-            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
             sw.Restart();
-            var ch1 = graphe.CheminDijkstra(start, end);
+            var chDij = graphe.CheminDijkstra(DepartId, ArriveeId);
             sw.Stop();
-            results.Add(("Dijkstra", sw.ElapsedMilliseconds, ch1));
+            results.Add(("Dijkstra", sw.ElapsedMilliseconds, chDij));
 
             sw.Restart();
-            var ch2 = graphe.CheminBellmanFord(start, end);
+            var chBell = graphe.CheminBellmanFord(DepartId, ArriveeId);
             sw.Stop();
-            results.Add(("Bellman–Ford", sw.ElapsedMilliseconds, ch2));
+            results.Add(("Bellman-Ford", sw.ElapsedMilliseconds, chBell));
 
             sw.Restart();
-            var ch3 = graphe.CheminFloydWarshall(start, end);
+            var chFloy = graphe.CheminFloydWarshall(DepartId, ArriveeId);
             sw.Stop();
-            results.Add(("Floyd–Warshall", sw.ElapsedMilliseconds, ch3));
+            results.Add(("Floyd-Warshall", sw.ElapsedMilliseconds, chFloy));
 
+            // Sélection du chemin le plus rapide pour la mise en évidence
             var fastest = results.OrderBy(r => r.t).First();
             foreach (var id in fastest.chemin)
             {
                 if (fastest.nom == "Dijkstra") dijkstraVisites.Add(id);
-                if (fastest.nom == "Bellman–Ford") bellmanVisites.Add(id);
-                if (fastest.nom == "Floyd–Warshall") floydVisites.Add(id);
+                else if (fastest.nom == "Bellman-Ford") bellmanVisites.Add(id);
+                else if (fastest.nom == "Floyd-Warshall") floydVisites.Add(id);
             }
 
-            string msg = string.Join("\r\n",
-                results.Select(r => $"{r.nom} : {r.t} ms  → {string.Join(" → ", r.chemin)}")) +
-                $"\r\n\nPlus rapide : {fastest.nom}";
+            string msg = string.Join("\n",
+                          results.Select(r => $"{r.nom} : {r.t} ms (Chemin : {string.Join("-", r.chemin)})"))
+                      + $"\n\nLe plus rapide est : {fastest.nom}";
+
             AfficherEnPleinEcran("Comparaison des algorithmes", msg);
             Invalidate();
         }
-
         private void BoutonColoration_Click(object s, EventArgs e)
         {
             ClearAll();
-            Brush[] palette = {
-                Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon,
-                Brushes.LightYellow, Brushes.LightPink, Brushes.LightGray
-            };
-            foreach (var node in graphe.Noeuds.Keys)
+
+            // Palette circulaire
+            Brush[] palette =
             {
-                var used = new HashSet<Brush>();
-                foreach (var v in graphe.Noeuds[node].Voisins)
-                    if (coloration.TryGetValue(v.Id, out var b))
-                        used.Add(b);
-                coloration[node] = palette.First(c => !used.Contains(c));
+        Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon,
+        Brushes.LightYellow, Brushes.LightPink,  Brushes.LightGray
+    };
+
+            // Welsh–Powell : nœuds triés par degré décroissant
+            var ordre = graphe.Noeuds.Values
+                                 .OrderByDescending(n => n.Voisins.Count)
+                                 .Select(n => n.Id)
+                                 .ToList();
+
+            var couleurParNoeud = new Dictionary<int, int>(); // idCouleur
+
+            int couleurCourante = 0;
+            foreach (var id in ordre)
+            {
+                if (couleurParNoeud.ContainsKey(id)) continue;
+
+                couleurParNoeud[id] = couleurCourante;
+
+                // Tente d’attribuer la même couleur à tous les nœuds non adjacents
+                foreach (var autre in ordre)
+                {
+                    if (couleurParNoeud.ContainsKey(autre)) continue;
+
+                    bool conflit = graphe.Noeuds[autre].Voisins
+                                           .Any(v => couleurParNoeud.TryGetValue(v.Id, out int c) &&
+                                                     c == couleurCourante);
+
+                    if (!conflit)
+                        couleurParNoeud[autre] = couleurCourante;
+                }
+
+                couleurCourante++;
             }
+
+            // Conversion vers les Brushs utilisés au dessin
+            foreach (var kv in couleurParNoeud)
+                coloration[kv.Key] = palette[kv.Value % palette.Length];
+
             Invalidate();
         }
 
         private void AfficherEnPleinEcran(string titre, string contenu)
         {
-            using var fen = new Form
-            {
-                Text = titre,
-                WindowState = FormWindowState.Maximized,
-                Font = new Font("Consolas", 10f, FontStyle.Regular)
-            };
-            var tb = new TextBox
-            {
-                Multiline = true,
-                ReadOnly = true,
-                ScrollBars = ScrollBars.Both,
-                Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10f, FontStyle.Regular),
-                Text = contenu
-            };
-            fen.Controls.Add(tb);
-            fen.ShowDialog();
+            var fen = new Form { Text = titre, WindowState = FormWindowState.Maximized };
+            var tb = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Dock = DockStyle.Fill, Text = contenu };
+            fen.Controls.Add(tb); fen.ShowDialog();
         }
-
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);

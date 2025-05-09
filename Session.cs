@@ -1,34 +1,66 @@
 ﻿namespace Projet_PSI
 {
+    /// <summary>
+    /// Classe statique gérant les informations de session de l'utilisateur.
+    /// </summary>
     public static class Session
     {
-        // ID de l'utilisateur connecté
-        public static int IdUtilisateur { get; set; }
+        private static int idUtilisateur;
+        private static string email;
+        private static string role;
 
-        // Email de connexion (utile pour affichage)
-        public static string Email { get; set; }
+        /// <summary>
+        /// Obtient ou définit l'identifiant de l'utilisateur connecté.
+        /// </summary>
+        public static int IdUtilisateur
+        {
+            get { return idUtilisateur; }
+            set { idUtilisateur = value; }
+        }
 
-        // Rôle possible : "admin", "client", "cuisinier"
-        public static string Role { get; set; }
+        /// <summary>
+        /// Obtient ou définit l'email de connexion de l'utilisateur (affichage).
+        /// </summary>
+        public static string Email
+        {
+            get { return email; }
+            set { email = value; }
+        }
 
-        // Réinitialise la session (utile à la déconnexion)
+        /// <summary>
+        /// Obtient ou définit le rôle de l'utilisateur ("admin", "client", "cuisinier").
+        /// </summary>
+        public static string Role
+        {
+            get { return role; }
+            set { role = value; }
+        }
+
+        /// <summary>
+        /// Réinitialise la session, en réinitialisant les attributs aux valeurs par défaut.
+        /// </summary>
         public static void Reinitialiser()
         {
-            IdUtilisateur = -1;
-            Email = null;
-            Role = null;
+            idUtilisateur = -1;
+            email = null;
+            role = null;
         }
 
-        // Vérifie si un utilisateur est connecté
+        /// <summary>
+        /// Vérifie si un utilisateur est connecté.
+        /// </summary>
+        /// <returns>True si un rôle est défini, sinon false.</returns>
         public static bool EstConnecte()
         {
-            return Role != null;
+            return role != null;
         }
 
-        // Affiche une info utile (debug ou menu)
+        /// <summary>
+        /// Fournit des informations de session.
+        /// </summary>
         public static string Info()
         {
-            return $"Connecté : {Email} ({Role})";
+            return $"Connecté : {email} ({role})";
         }
     }
 }

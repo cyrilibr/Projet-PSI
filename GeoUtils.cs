@@ -9,6 +9,12 @@ namespace Projet_PSI.Utils
 {
     public static class GeoUtils
     {
+        private class GeoResult
+        {
+            public string lat { get; set; }
+            public string lon { get; set; }
+        }
+
         /// <summary>
         /// Utilise l’API Nominatim pour géocoder une adresse et retourner ses coordonnées.
         /// </summary>
@@ -90,12 +96,6 @@ namespace Projet_PSI.Utils
             if (coord == null) return -1;
 
             return TrouverStationLaPlusProche(graphe, coord.Value.lat, coord.Value.lon);
-        }
-
-        private class GeoResult
-        {
-            public string lat { get; set; }
-            public string lon { get; set; }
         }
     }
 }
