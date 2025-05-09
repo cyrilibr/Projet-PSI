@@ -3,8 +3,14 @@ using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module permettant d'afficher diverses statistiques liées aux clients, cuisiniers et commandes.
+    /// </summary>
     public static class ModuleStatistiques
     {
+        /// <summary>
+        /// Lance le menu interactif des statistiques.
+        /// </summary>
         public static void Lancer()
         {
             bool retour = false;
@@ -52,6 +58,12 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Exécute une requête simple et affiche le résultat avec un titre.
+        /// </summary>
+        /// <param name="titre">Titre affiché avant la valeur</param>
+        /// <param name="requete">Requête SQL à exécuter</param>
+        /// <param name="suffixe">Unité ou symbole à ajouter à la fin</param>
         private static void Afficher(string titre, string requete, string suffixe = "")
         {
             using var reader = Bdd.Lire(requete);
@@ -63,6 +75,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Affiche le nombre de commandes entre deux dates données.
+        /// </summary>
         private static void CommandesParPeriode()
         {
             Console.Write("Date début (yyyy-mm-dd) : ");
@@ -83,6 +98,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Calcule la moyenne du montant total dépensé par les clients.
+        /// </summary>
         private static void MoyenneMontantClients()
         {
             string requete = "SELECT AVG(MontantTotalAchats) FROM Client";
@@ -95,6 +113,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Affiche les commandes passées par un client donné selon sa nationalité et une période.
+        /// </summary>
         private static void CommandesClientParNationalite()
         {
             Console.Write("ID du client : ");
@@ -127,6 +148,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Affiche le top 5 des clients ayant dépensé le plus.
+        /// </summary>
         private static void TopClients()
         {
             Console.WriteLine("\n--- Clients les plus dépensiers ---");
@@ -146,6 +170,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Affiche le top 5 des cuisiniers ayant effectué le plus de livraisons.
+        /// </summary>
         private static void TopCuisiniers()
         {
             Console.WriteLine("\n--- Cuisiniers les plus actifs ---");

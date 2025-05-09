@@ -7,8 +7,14 @@ using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module permettant d’exporter les données de la base au format JSON ou XML.
+    /// </summary>
     public static class ModuleExport
     {
+        /// <summary>
+        /// Lance le menu d’exportation des différentes tables.
+        /// </summary>
         public static void Lancer()
         {
             Console.Clear();
@@ -35,18 +41,20 @@ namespace Projet_PSI.Modules
             Console.ReadKey();
         }
 
+        /// <summary>
+        /// Exporte les données d'une table au format spécifié (JSON ou XML).
+        /// </summary>
+        /// <param name="table">Nom de la table à exporter.</param>
         private static void Exporter(string table)
         {
             Console.Write("Format (json/xml) : ");
             string format = Console.ReadLine()?.ToLower();
 
-            // On place l'export sur le Bureau de l'utilisateur
             string bureau = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string chemin = Path.Combine(bureau, $"{table}_export.{format}");
 
             if (format == "json")
             {
-                // JSON : on sérialise la liste de dictionnaires
                 var liste = new List<Dictionary<string, object>>();
                 using (var reader = Bdd.Lire($"SELECT * FROM {table}"))
                 {
@@ -66,7 +74,6 @@ namespace Projet_PSI.Modules
             }
             else if (format == "xml")
             {
-                // XML : on passe par un DataTable, qui gère n'importe quelle colonne
                 var dt = new DataTable(table);
                 using (var reader = Bdd.Lire($"SELECT * FROM {table}"))
                 {
@@ -74,7 +81,6 @@ namespace Projet_PSI.Modules
                     reader.Close();
                 }
 
-                // Génère le XML + schéma automatiquement
                 dt.WriteXml(chemin, XmlWriteMode.WriteSchema);
                 Console.WriteLine($"Export XML terminé : {chemin}");
             }

@@ -3,8 +3,16 @@ using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module gérant l'authentification des utilisateurs et redirigeant
+    /// vers leur interface respective (admin, client, cuisinier).
+    /// </summary>
     public static class ModuleAuthentification
     {
+        /// <summary>
+        /// Lance la boucle de connexion et gère l'authentification selon le rôle.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations utilisé pour les modules suivants.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             while (true)
@@ -16,7 +24,7 @@ namespace Projet_PSI.Modules
                 Console.Write("Mot de passe : ");
                 string mdp = Console.ReadLine();
 
-                // Mode admin (hardcodé)
+                // Authentification admin (identifiants hardcodés)
                 if (email == "admin" && mdp == "adminpass")
                 {
                     Session.IdUtilisateur = 0;
@@ -24,11 +32,11 @@ namespace Projet_PSI.Modules
                     Session.Role = "admin";
                     Console.WriteLine("Connexion admin réussie !");
                     Console.ReadKey();
-                    ModulePrincipal.Lancer(graphe); // ancien menu admin
+                    ModulePrincipal.Lancer(graphe);
                     return;
                 }
 
-                // Recherche dans la base Tier
+                // Recherche de l'utilisateur dans la table Tier
                 string requete = $"SELECT ID FROM Tier WHERE EMAIL = '{email}' AND MDP = '{mdp}'";
                 using var reader = Bdd.Lire(requete);
 
@@ -43,7 +51,7 @@ namespace Projet_PSI.Modules
                 int id = reader.GetInt32("ID");
                 reader.Close();
 
-                // Vérifie si client
+                // Détermination du rôle (client ou cuisinier)
                 bool estClient = ExisteDansTable("Client", id);
                 bool estCuisinier = ExisteDansTable("Cuisinier", id);
 
@@ -75,6 +83,12 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Vérifie l'existence d'un ID dans une table donnée.
+        /// </summary>
+        /// <param name="table">Nom de la table SQL.</param>
+        /// <param name="id">Identifiant à vérifier.</param>
+        /// <returns>True si l'enregistrement existe, False sinon.</returns>
         private static bool ExisteDansTable(string table, int id)
         {
             string requete = $"SELECT 1 FROM {table} WHERE ID = {id} LIMIT 1";

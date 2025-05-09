@@ -1,11 +1,23 @@
 ﻿using Projet_PSI.Utils;
+using Projet_PSI.Utils;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Text.Json;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module dédié aux cuisiniers connectés, leur permettant de gérer leurs informations,
+    /// simuler des trajets, valider des commandes et gérer leurs plats.
+    /// </summary>
     public static class ModuleCuisinierConnecte
     {
+        /// <summary>
+        /// Lance le menu principal du cuisinier connecté.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations utilisé pour simuler les trajets.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             bool retour = false;
@@ -30,7 +42,7 @@ namespace Projet_PSI.Modules
                     case "3": SimulerTrajet(graphe); break;
                     case "4": AfficherCommandes(); break;
                     case "5": ValiderCommande(); break;
-                    case "6": GererMesPlats(); break; 
+                    case "6": GererMesPlats(); break;
                     case "0":
                         Session.Reinitialiser();
                         retour = true;
@@ -48,6 +60,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche les informations personnelles du cuisinier connecté.
+        /// </summary>
         private static void AfficherInfos()
         {
             string req = $"SELECT * FROM Tier WHERE ID = {Session.IdUtilisateur}";
@@ -64,6 +79,9 @@ namespace Projet_PSI.Modules
             r.Close();
         }
 
+        /// <summary>
+        /// Permet au cuisinier de modifier ses coordonnées personnelles.
+        /// </summary>
         private static void ModifierInfos()
         {
             Console.Write("Nouveau téléphone : "); string tel = Console.ReadLine();
@@ -83,6 +101,10 @@ namespace Projet_PSI.Modules
             Console.WriteLine("Informations mises à jour.");
         }
 
+        /// <summary>
+        /// Simule un trajet entre la station la plus proche du cuisinier et celle du client.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations pour le calcul du chemin.</param>
         private static void SimulerTrajet(Graphe<Station> graphe)
         {
             Console.Write("Adresse du client : ");
@@ -120,6 +142,9 @@ namespace Projet_PSI.Modules
             Console.WriteLine($"Temps estimé : {chemin.Count * 2} minutes");
         }
 
+        /// <summary>
+        /// Affiche les commandes en cours à livrer pour le cuisinier connecté.
+        /// </summary>
         private static void AfficherCommandes()
         {
             string req = $@"
@@ -140,6 +165,9 @@ namespace Projet_PSI.Modules
             r.Close();
         }
 
+        /// <summary>
+        /// Permet de valider une commande comme livrée.
+        /// </summary>
         private static void ValiderCommande()
         {
             Console.Write("Numéro de livraison à valider : ");
@@ -150,7 +178,9 @@ namespace Projet_PSI.Modules
             Console.WriteLine("Commande validée comme livrée.");
         }
 
-
+        /// <summary>
+        /// Lance le sous-menu de gestion des plats du cuisinier.
+        /// </summary>
         private static void GererMesPlats()
         {
             bool retourMenuCuisinier = false;
@@ -166,19 +196,12 @@ namespace Projet_PSI.Modules
 
                 switch (choix)
                 {
-                    case "1":
-                        AfficherMesPlats();
-                        break;
-                    case "2":
-                        AjouterPlat();
-                        break;
-                    case "0":
-                        retourMenuCuisinier = true;
-                        break;
-                    default:
-                        Console.WriteLine("Choix invalide.");
-                        break;
+                    case "1": AfficherMesPlats(); break;
+                    case "2": AjouterPlat(); break;
+                    case "0": retourMenuCuisinier = true; break;
+                    default: Console.WriteLine("Choix invalide."); break;
                 }
+
                 if (!retourMenuCuisinier)
                 {
                     Console.WriteLine("\nAppuyez sur une touche pour continuer...");
@@ -187,6 +210,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche la liste des plats du cuisinier connecté ainsi que leurs ingrédients.
+        /// </summary>
         private static void AfficherMesPlats()
         {
             Console.Clear();
@@ -197,77 +223,86 @@ namespace Projet_PSI.Modules
                 FROM Mets 
                 WHERE ID_Cuisinier = {Session.IdUtilisateur}";
 
-            using (var reader = Bdd.Lire(req))
+            using var reader = Bdd.Lire(req)
+            ;
+            if (!reader.HasRows)
             {
-                if (!reader.HasRows)
-                {
-                    Console.WriteLine("Vous n'avez aucun plat enregistré.");
-                    reader.Close();
-                    return;
-                }
-                while (reader.Read())
-                {
-                    Console.WriteLine($"\nID Plat: {reader.GetString("ID")}");
-                    Console.WriteLine($"  Type: {reader.GetString("Type")}, Pour: {reader.GetInt32("NbDePersonnes")} personne(s)");
-                    Console.WriteLine($"  Prix/Personne: {reader.GetDecimal("PrixParPersonne"):C}, Nationalité: {reader.GetString("Nationalite")}");
-                    Console.WriteLine($"  Régime: {reader.GetString("RegimeAlimentaire")}, Péremption: {reader.GetDateTime("DateDePeremption"):yyyy-MM-dd}");
-                    Console.WriteLine($"  Disponibilité: {(reader.GetBoolean("Disponibilite") ? "Oui" : "Non")}, Popularité: {reader.GetInt32("Popularite")}");
-                    // Afficher les ingrédients du plat
-                    AfficherIngredientsPourPlat(reader.GetString("ID"));
-                }
+                Console.WriteLine("Vous n'avez aucun plat enregistré.");
                 reader.Close();
+                return;
             }
+            while (reader.Read())
+            {
+                Console.WriteLine($"\nID Plat: {reader.GetString("ID")}");
+                Console.WriteLine($"  Type: {reader.GetString("Type")}, Pour: {reader.GetInt32("NbDePersonnes")} personne(s)");
+                Console.WriteLine($"  Prix/Personne: {reader.GetDecimal("PrixParPersonne"):C}, Nationalité: {reader.GetString("Nationalite")}");
+                Console.WriteLine($"  Régime: {reader.GetString("RegimeAlimentaire")}, Péremption: {reader.GetDateTime("DateDePeremption"):yyyy-MM-dd}");
+                Console.WriteLine($"  Disponibilité: {(reader.GetBoolean("Disponibilite") ? "Oui" : "Non")}, Popularité: {reader.GetInt32("Popularite")}");
+
+                // Afficher les ingrédients du plat
+                AfficherIngredientsPourPlat(reader.GetString("ID"));
+            }
+            reader.Close();
         }
 
+        /// <summary>
+        /// Affiche les ingrédients et quantités associés à un plat donné.
+        /// </summary>
+        /// <param name="idMet">Identifiant du plat.</param>
         private static void AfficherIngredientsPourPlat(string idMet)
         {
-            Console.WriteLine("  Ingrédients:");
+            Console.WriteLine("  Ingrédients :");
             string req = $@"
                 SELECT I.NomIngredient, Q.NbIngredients 
                 FROM Quantite Q
                 JOIN Ingredients I ON Q.IDIngredient = I.IDIngredient
                 WHERE Q.ID_Mets = '{idMet}'";
 
-            using (var reader = Bdd.Lire(req))
+            using var reader = Bdd.Lire(req);
+            if (!reader.HasRows)
             {
-                if (!reader.HasRows)
-                {
-                    Console.WriteLine("    - Aucun ingrédient associé.");
-                    reader.Close();
-                    return;
-                }
-                while (reader.Read())
-                {
-                    Console.WriteLine($"    - {reader.GetString("NomIngredient")}: {reader.GetInt32("NbIngredients")}");
-                }
+                Console.WriteLine("    - Aucun ingrédient associé.");
                 reader.Close();
+                return;
             }
+            while (reader.Read())
+            {
+                Console.WriteLine($"    - {reader.GetString("NomIngredient")}: {reader.GetInt32("NbIngredients")}");
+            }
+            reader.Close();
         }
 
-
+        /// <summary>
+        /// Vérifie si un identifiant de plat existe déjà en base.
+        /// </summary>
+        /// <param name="idMet">Identifiant du plat à vérifier.</param>
+        /// <returns>True si l'ID existe, False sinon.</returns>
         private static bool MetIdExiste(string idMet)
         {
             string req = $"SELECT 1 FROM Mets WHERE ID = '{idMet}'";
-            using (var reader = Bdd.Lire(req))
-            {
-                bool existe = reader.Read();
-                reader.Close();
-                return existe;
-            }
+            using var reader = Bdd.Lire(req);
+            bool existe = reader.Read();
+            reader.Close();
+            return existe;
         }
 
+        /// <summary>
+        /// Vérifie si un identifiant d'ingrédient existe déjà en base.
+        /// </summary>
+        /// <param name="idIngredient">Identifiant de l'ingrédient à vérifier.</param>
+        /// <returns>True si l'ID existe, False sinon.</returns>
         private static bool IngredientIdExiste(string idIngredient)
         {
             string req = $"SELECT 1 FROM Ingredients WHERE IDIngredient = '{idIngredient}'";
-            using (var reader = Bdd.Lire(req))
-            {
-                bool existe = reader.Read();
-                reader.Close();
-                return existe;
-            }
+            using var reader = Bdd.Lire(req);
+            bool existe = reader.Read();
+            reader.Close();
+            return existe;
         }
 
-
+        /// <summary>
+        /// Permet d'ajouter un nouveau plat et ses ingrédients en base.
+        /// </summary>
         private static void AjouterPlat()
         {
             Console.Clear();
@@ -276,7 +311,7 @@ namespace Projet_PSI.Modules
             string idMet;
             do
             {
-                Console.Write("ID du plat (ex: M4, M_SPECIAL_NOEL): ");
+                Console.Write("ID du plat (ex: M4, M_SPECIAL_NOEL) : ");
                 idMet = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(idMet))
                 {
@@ -285,20 +320,20 @@ namespace Projet_PSI.Modules
                 else if (MetIdExiste(idMet))
                 {
                     Console.WriteLine("Cet ID de plat existe déjà. Veuillez en choisir un autre.");
-                    idMet = null; // pour que la boucle continue
+                    idMet = null;
                 }
             } while (string.IsNullOrWhiteSpace(idMet));
 
-            Console.Write("Type (Entrée, Plat principal, Dessert): "); string type = Console.ReadLine();
-            Console.Write("Nombre de personnes: "); int nbPersonnes = int.Parse(Console.ReadLine());
-            Console.Write("Prix par personne: "); decimal prixParPersonne = decimal.Parse(Console.ReadLine().Replace(",", ".")); // Gérer la virgule
-            Console.Write("Nationalité: "); string nationalite = Console.ReadLine();
-            Console.Write("Régime alimentaire: "); string regime = Console.ReadLine();
-            Console.Write("Date de péremption (YYYY-MM-DD): "); string datePeremption = Console.ReadLine();
-            Console.Write("Date de fabrication (YYYY-MM-DD): "); string dateFabrication = Console.ReadLine();
-            Console.Write("Photo (nom du fichier/URL, ex: mon_plat.jpg): "); string photo = Console.ReadLine();
-            Console.Write("Disponibilité (true/false): "); bool dispo = bool.Parse(Console.ReadLine());
-            Console.Write("Popularité (0-100): "); int popularite = int.Parse(Console.ReadLine());
+            Console.Write("Type (Entrée, Plat principal, Dessert) : "); string type = Console.ReadLine();
+            Console.Write("Nombre de personnes : "); int nbPersonnes = int.Parse(Console.ReadLine());
+            Console.Write("Prix par personne : "); decimal prixParPersonne = decimal.Parse(Console.ReadLine().Replace(",", "."));
+            Console.Write("Nationalité : "); string nationalite = Console.ReadLine();
+            Console.Write("Régime alimentaire : "); string regime = Console.ReadLine();
+            Console.Write("Date de péremption (YYYY-MM-DD) : "); string datePeremption = Console.ReadLine();
+            Console.Write("Date de fabrication (YYYY-MM-DD) : "); string dateFabrication = Console.ReadLine();
+            Console.Write("Photo (nom du fichier/URL) : "); string photo = Console.ReadLine();
+            Console.Write("Disponibilité (true/false) : "); bool dispo = bool.Parse(Console.ReadLine());
+            Console.Write("Popularité (0-100) : "); int popularite = int.Parse(Console.ReadLine());
 
             try
             {
@@ -308,27 +343,26 @@ namespace Projet_PSI.Modules
                 Bdd.Executer(reqMet);
                 Console.WriteLine($"Plat '{idMet}' ajouté avec succès !");
 
-                // Ajout des ingrédients pour ce plat
                 Console.WriteLine("\n--- Ajout des ingrédients pour ce plat ---");
                 AfficherIngredientsDisponibles();
 
-                string idIngredient;
                 while (true)
                 {
-                    Console.Write("ID de l'ingrédient à ajouter (ou 'fin' pour terminer): ");
-                    idIngredient = Console.ReadLine();
-                    if (idIngredient.ToLower() == "fin") break;
+                    Console.Write("ID de l'ingrédient à ajouter (ou 'fin' pour terminer) : ");
+                    string idIngredient = Console.ReadLine();
+                    if (idIngredient.ToLower() == "fin")
+                        break;
 
                     if (!IngredientIdExiste(idIngredient))
                     {
-                        Console.WriteLine($"L'ingrédient avec ID '{idIngredient}' n'existe pas. Veuillez vérifier l'ID ou l'ajouter (fonctionnalité admin).");
+                        Console.WriteLine($"Ingrédient '{idIngredient}' inexistant.");
                         continue;
                     }
 
-                    Console.Write($"Quantité de '{idIngredient}' nécessaire: ");
+                    Console.Write($"Quantité de '{idIngredient}' nécessaire : ");
                     if (!int.TryParse(Console.ReadLine(), out int nbIngredients) || nbIngredients <= 0)
                     {
-                        Console.WriteLine("Quantité invalide. Doit être un nombre positif.");
+                        Console.WriteLine("Quantité invalide.");
                         continue;
                     }
 
@@ -336,10 +370,10 @@ namespace Projet_PSI.Modules
                         INSERT INTO Quantite (ID_Mets, IDIngredient, NbIngredients)
                         VALUES ('{idMet}', '{idIngredient}', {nbIngredients});";
                     Bdd.Executer(reqQuantite);
-                    Console.WriteLine($"Ingrédient '{idIngredient}' ajouté au plat '{idMet}'.");
+                    Console.WriteLine($"Ingrédient '{idIngredient}' ajouté ({nbIngredients}).");
                 }
-                Console.WriteLine("Ingrédients pour le plat enregistrés.");
 
+                Console.WriteLine("Ingrédients enregistrés.");
             }
             catch (Exception ex)
             {
@@ -347,26 +381,27 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche la liste des ingrédients disponibles pour ajout à un plat.
+        /// </summary>
         private static void AfficherIngredientsDisponibles()
         {
             Console.WriteLine("\n--- Liste des Ingrédients Disponibles ---");
             string req = "SELECT IDIngredient, NomIngredient FROM Ingredients ORDER BY NomIngredient;";
-            using (var reader = Bdd.Lire(req))
+            using var reader = Bdd.Lire(req);
+            if (!reader.HasRows)
             {
-                if (!reader.HasRows)
-                {
-                    Console.WriteLine("Aucun ingrédient disponible dans la base.");
-                    reader.Close();
-                    return;
-                }
-                while (reader.Read())
-                {
-                    Console.WriteLine($"ID: {reader.GetString("IDIngredient")} - Nom: {reader.GetString("NomIngredient")}");
-                }
+                Console.WriteLine("Aucun ingrédient disponible.");
                 reader.Close();
+                return;
             }
-            Console.WriteLine("-----------------------------------------\n");
+            while (reader.Read())
+            {
+                Console.WriteLine($"ID: {reader.GetString("IDIngredient")} - Nom: {reader.GetString("NomIngredient")}");
+            }
+            reader.Close();
+            Console.WriteLine("-------------------------------\n");
         }
-
     }
 }
+

@@ -3,9 +3,15 @@ using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module de gestion des clients pour l'administrateur, incluant la consultation,
+    /// l'ajout, la suppression et la modification des informations client.
+    /// </summary>
     public static class ModuleClient
     {
-        // === MENU ADMIN ===
+        /// <summary>
+        /// Lance le menu principal du module client (admin).
+        /// </summary>
         public static void Lancer()
         {
             bool retour = false;
@@ -43,6 +49,10 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche la liste des clients selon une clause ORDER spécifiée.
+        /// </summary>
+        /// <param name="orderClause">Clause SQL ORDER BY pour trier les résultats.</param>
         private static void AfficherClients(string orderClause)
         {
             Console.Clear();
@@ -67,6 +77,9 @@ namespace Projet_PSI.Modules
             reader.Close();
         }
 
+        /// <summary>
+        /// Ajoute un nouveau client en base, dans les tables Tier et Client.
+        /// </summary>
         private static void AjouterClient()
         {
             Console.Clear();
@@ -102,7 +115,7 @@ namespace Projet_PSI.Modules
                     INSERT INTO Client VALUES ('{idGenere}', '{note}', '{type}', {total}, '');";
 
                 Bdd.Executer(insertClient);
-                Console.WriteLine("Client ajouté avec succès (ID: " + idGenere + ")");
+                Console.WriteLine($"Client ajouté avec succès (ID : {idGenere})");
             }
             catch (Exception ex)
             {
@@ -110,6 +123,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Supprime un client de la base via son ID.
+        /// </summary>
         private static void SupprimerClient()
         {
             Console.Clear();
@@ -128,6 +144,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Modifie les coordonnées d'un client existant.
+        /// </summary>
         private static void ModifierClient()
         {
             Console.Clear();
@@ -149,7 +168,10 @@ namespace Projet_PSI.Modules
             }
         }
 
-        // === MENU CLIENT (utilisateur connecté) ===
+        /// <summary>
+        /// Redirige vers le menu du client connecté.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations pour la simulation de trajet.</param>
         public static void LancerClient(Graphe<Station> graphe)
         {
             ModuleClientConnecte.Lancer(graphe);

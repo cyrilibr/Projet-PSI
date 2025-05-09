@@ -4,8 +4,16 @@ using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module responsable du calcul et de l'affichage du chemin de livraison
+    /// entre le cuisinier et le client via le réseau de stations.
+    /// </summary>
     public static class ModuleChemin
     {
+        /// <summary>
+        /// Lance la procédure de calcul du chemin de livraison.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations utilisé pour le calcul.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             Console.Clear();
@@ -17,7 +25,7 @@ namespace Projet_PSI.Modules
             Console.Write("ID du client : ");
             string idClient = Console.ReadLine();
 
-            // Récupération des adresses
+            // Récupération des adresses complètes
             string adresseCuisinier = ObtenirAdresseComplete(idCuisinier);
             string adresseClient = ObtenirAdresseComplete(idClient);
 
@@ -39,11 +47,11 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            // Affichage des stations les plus proches
+            // Affichage des stations identifiées
             Console.WriteLine($"\nStation la plus proche du cuisinier : {graphe.Noeuds[idStationDep].Data.Libelle} (ID: {idStationDep})");
             Console.WriteLine($"Station la plus proche du client : {graphe.Noeuds[idStationArr].Data.Libelle} (ID: {idStationArr})");
 
-            // Recherche du chemin le plus court
+            // Calcul du plus court chemin
             var chemin = graphe.CheminDijkstra(idStationDep, idStationArr);
 
             if (chemin.Count == 0)
@@ -67,6 +75,11 @@ namespace Projet_PSI.Modules
             Console.ReadKey();
         }
 
+        /// <summary>
+        /// Récupère l'adresse complète (rue, code postal, ville) pour un utilisateur.
+        /// </summary>
+        /// <param name="id">Identifiant de l'utilisateur (cuisinier ou client).</param>
+        /// <returns>Chaîne formatée "Adresse, CodePostal Ville" ou null si non trouvé.</returns>
         private static string ObtenirAdresseComplete(string id)
         {
             string query = $"SELECT ADR, CODEPOSTAL, VILLE FROM Tier WHERE ID = '{id}'";

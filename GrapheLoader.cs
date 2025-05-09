@@ -1,5 +1,4 @@
-﻿// Projet_PSI/GrapheLoader.cs
-using Projet_PSI.Utils;
+﻿using Projet_PSI.Utils;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -7,27 +6,18 @@ using System.Linq;
 
 namespace Projet_PSI
 {
+    /// <summary>
+    /// Charge les données de la table stations_metro et construit un graphe unifié de stations.
+    /// </summary>
     public static class GrapheLoader
     {
-        // Classe temporaire pour stocker les données brutes extraites de la BDD
-        private class DonneeStationBrute
-        {
-            public int Id { get; set; }                // Identifiant original en base
-            public string Nom { get; set; }           // Libellé de la station
-            public double Latitude { get; set; }      // Coordonnée latitude
-            public double Longitude { get; set; }     // Coordonnée longitude
-            public string NomCommune { get; set; }    // Nom de la commune
-            public int CodeCommune { get; set; }      // Code INSEE de la commune
-            public int? Precedent { get; set; }       // ID BDD de la station précédente (null si terminus)
-            public int? Suivant { get; set; }         // ID BDD de la station suivante (null si terminus)
-            public int TempsChangement { get; set; }   // Temps de correspondance (en secondes)
-            public bool EstOriente { get; set; }      // Orientation (non utilisé pour le graphe unifié)
-            public string NomLigne { get; set; }      // Nom de la ligne (par exemple "Ligne 1")
-        }
-
+        /// <summary>
+        /// Charge les stations depuis la base de données, unifie les stations physiques
+        /// de même nom et crée les nœuds et arêtes correspondants dans un graphe.
+        /// </summary>
+        /// <returns>Un graphe de stations prêtes pour le calcul de chemin.</returns>
         public static Graphe<Station> ChargerDepuisBDD()
         {
-            // 1. Chargement des données brutes depuis la base de données
             var listeBrute = new List<DonneeStationBrute>();
             using (var lecteur = Bdd.Lire(@"
                 SELECT IDStation, LibelleStation, Latitude, Longitude,
@@ -54,16 +44,11 @@ namespace Projet_PSI
                 }
             }
 
-            // 2. Unification des stations physiques par libellé
-            // Regrouper toutes les entrées de même nom
             var groupes = listeBrute.GroupBy(s => s.Nom).ToList();
             int nStationsUnifiees = groupes.Count;
             var graphe = new Graphe<Station>(nStationsUnifiees);
-
-            // Dictionnaire pour traduire chaque ID BDD en ID unifié
             var mapIdBddVersUnifie = new Dictionary<int, int>(listeBrute.Count);
 
-            // Création des nœuds unifiés dans le graphe
             for (int idUnifie = 0; idUnifie < nStationsUnifiees; idUnifie++)
             {
                 var premiereEntree = groupes[idUnifie].First();
@@ -83,40 +68,65 @@ namespace Projet_PSI
                 };
                 graphe.AjouterNoeud(idUnifie, stationUnifiee);
 
-                // Associer chaque enregistrement brut à cet ID unifié
                 foreach (var raw in groupes[idUnifie])
                 {
                     mapIdBddVersUnifie[raw.Id] = idUnifie;
                 }
             }
 
-            // 3. Ajout des arêtes (liens) suivant les références Précédent/Suivant
+
             foreach (var raw in listeBrute)
             {
                 if (!mapIdBddVersUnifie.TryGetValue(raw.Id, out int u))
                     continue;
 
-                // Poids en minutes
                 int poidsMinutes = raw.TempsChangement;
 
-                // Station précédente ➔ station courante
-                if (raw.Precedent.HasValue
-                    && mapIdBddVersUnifie.TryGetValue(raw.Precedent.Value, out int vPrev)
-                    && u != vPrev)
+                if (raw.Precedent.HasValue &&
+                    mapIdBddVersUnifie.TryGetValue(raw.Precedent.Value, out int vPrev) &&
+                    u != vPrev)
                 {
                     graphe.AjouterLien(vPrev, u, poidsMinutes);
                 }
 
-                // Station courante ➔ station suivante
-                if (raw.Suivant.HasValue
-                    && mapIdBddVersUnifie.TryGetValue(raw.Suivant.Value, out int vNext)
-                    && u != vNext)
+                if (raw.Suivant.HasValue &&
+                    mapIdBddVersUnifie.TryGetValue(raw.Suivant.Value, out int vNext) &&
+                    u != vNext)
                 {
                     graphe.AjouterLien(u, vNext, poidsMinutes);
                 }
             }
 
             return graphe;
+        }
+
+        /// <summary>
+        /// Classe temporaire pour stocker les données brutes extraites de la base.
+        /// </summary>
+        private class DonneeStationBrute
+        {
+            /// <summary>Identifiant original en base.</summary>
+            public int Id { get; set; }
+            /// <summary>Libellé de la station.</summary>
+            public string Nom { get; set; }
+            /// <summary>Coordonnée latitude.</summary>
+            public double Latitude { get; set; }
+            /// <summary>Coordonnée longitude.</summary>
+            public double Longitude { get; set; }
+            /// <summary>Nom de la commune.</summary>
+            public string NomCommune { get; set; }
+            /// <summary>Code INSEE de la commune.</summary>
+            public int CodeCommune { get; set; }
+            /// <summary>ID BDD de la station précédente (null si terminus).</summary>
+            public int? Precedent { get; set; }
+            /// <summary>ID BDD de la station suivante (null si terminus).</summary>
+            public int? Suivant { get; set; }
+            /// <summary>Temps de correspondance (en secondes).</summary>
+            public int TempsChangement { get; set; }
+            /// <summary>Orientation (non utilisé sur le graphe unifié).</summary>
+            public bool EstOriente { get; set; }
+            /// <summary>Nom de la ligne (ex: "Ligne 1").</summary>
+            public string NomLigne { get; set; }
         }
     }
 }

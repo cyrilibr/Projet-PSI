@@ -49,9 +49,8 @@ namespace Projet_PSI.Utils
         /// </summary>
         public static int TrouverStationLaPlusProche(Graphe<Station> graphe, double lat, double lon)
         {
-            const double R = 6371000; // Rayon de la Terre en mètres
+            const double R = 6371000; 
 
-            // Conversion en radians
             double toRad(double angle) => angle * Math.PI / 180.0;
 
             double latRad = toRad(lat);

@@ -3,8 +3,15 @@ using Projet_PSI.Modules;
 
 namespace Projet_PSI
 {
+    /// <summary>
+    /// Module principal de l'application qui gère le menu général et la navigation entre les modules.
+    /// </summary>
     public static class ModulePrincipal
     {
+        /// <summary>
+        /// Lance le menu principal et redirige vers les différents modules selon le choix de l'utilisateur.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations utilisé pour les trajets de livraison.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             bool quitter = false;

@@ -1,5 +1,4 @@
-﻿// Projet_PSI/Station.cs
-using System.Collections.Generic; // Ajout
+﻿using System.Collections.Generic; // Ajout
 using System.Linq; // Ajout
 
 namespace Projet_PSI

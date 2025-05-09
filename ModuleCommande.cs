@@ -3,8 +3,15 @@ using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module de gestion des commandes, permettant la création, la modification et
+    /// l'affichage des trajets de livraison.
+    /// </summary>
     public static class ModuleCommande
     {
+        /// <summary>
+        /// Lance le menu principal du module commande.
+        /// </summary>
         public static void Lancer()
         {
             bool retour = false;
@@ -36,6 +43,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Crée une nouvelle commande avec le client, cuisinier, adresse et mets sélectionnés.
+        /// </summary>
         private static void CreerCommande()
         {
             Console.Clear();
@@ -81,9 +91,9 @@ namespace Projet_PSI.Modules
                 Bdd.Executer(insertCmd);
 
                 int livraisonID = 0;
-                using var r = Bdd.Lire("SELECT MAX(NumerodeLivraison) as MaxID FROM CommandeLivraison");
-                if (r.Read()) livraisonID = r.GetInt32("MaxID");
-                r.Close();
+                using var r2 = Bdd.Lire("SELECT MAX(NumerodeLivraison) AS MaxID FROM CommandeLivraison");
+                if (r2.Read()) livraisonID = r2.GetInt32("MaxID");
+                r2.Close();
 
                 Bdd.Executer($"INSERT INTO Reçoit VALUES ('{idClient}', {livraisonID})");
                 Bdd.Executer($"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison) VALUES ('{adresseClient}', '{adresseCuisinier}', 0, '00:00:00', '', {livraisonID})");
@@ -105,6 +115,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Modifie l'état d'une commande existante.
+        /// </summary>
         private static void ModifierCommande()
         {
             Console.Clear();
@@ -122,6 +135,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche le trajet de livraison pour une commande donnée.
+        /// </summary>
         private static void AfficherTrajet()
         {
             Console.Clear();

@@ -3,8 +3,16 @@ using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module dédié au client connecté, lui permettant de gérer ses informations,
+    /// simuler des trajets et passer des commandes.
+    /// </summary>
     public static class ModuleClientConnecte
     {
+        /// <summary>
+        /// Lance le menu principal du client connecté.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations utilisé pour simuler les trajets.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             bool retour = false;
@@ -43,6 +51,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Affiche les informations personnelles du client connecté.
+        /// </summary>
         private static void AfficherInfos()
         {
             string req = $"SELECT * FROM Tier WHERE ID = {Session.IdUtilisateur}";
@@ -50,15 +61,18 @@ namespace Projet_PSI.Modules
             if (r.Read())
             {
                 Console.WriteLine("\n--- Mes informations ---");
-                Console.WriteLine($"Nom : {r.GetString("NOMT")}");
-                Console.WriteLine($"Prénom : {r.GetString("PRENOMT")}");
-                Console.WriteLine($"Adresse : {r.GetString("ADR")}, {r.GetString("CODEPOSTAL")} {r.GetString("VILLE")}");
-                Console.WriteLine($"Email : {r.GetString("EMAIL")}");
-                Console.WriteLine($"Téléphone : {r.GetString("TEL")}");
+                Console.WriteLine($"Nom : {r.GetString("NOMT")} ");
+                Console.WriteLine($"Prénom : {r.GetString("PRENOMT")} ");
+                Console.WriteLine($"Adresse : {r.GetString("ADR")}, {r.GetString("CODEPOSTAL")} {r.GetString("VILLE")} ");
+                Console.WriteLine($"Email : {r.GetString("EMAIL")} ");
+                Console.WriteLine($"Téléphone : {r.GetString("TEL")} ");
             }
             r.Close();
         }
 
+        /// <summary>
+        /// Permet au client de modifier ses coordonnées personnelles.
+        /// </summary>
         private static void ModifierInfos()
         {
             Console.Write("Nouveau téléphone : "); string tel = Console.ReadLine();
@@ -78,6 +92,10 @@ namespace Projet_PSI.Modules
             Console.WriteLine("Informations mises à jour.");
         }
 
+        /// <summary>
+        /// Simule un trajet entre deux adresses en utilisant le plus court chemin sur le graphe.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations.</param>
         private static void SimulerTrajet(Graphe<Station> graphe)
         {
             Console.Write("Adresse de départ : ");
@@ -109,6 +127,9 @@ namespace Projet_PSI.Modules
             Console.WriteLine($"Temps estimé : {chemin.Count * 2} minutes");
         }
 
+        /// <summary>
+        /// Calcule le prix total et crée une commande en base.
+        /// </summary>
         private static void PasserCommande()
         {
             Console.Clear();
@@ -163,9 +184,9 @@ namespace Projet_PSI.Modules
                 Bdd.Executer(insertCmd);
 
                 int livraisonID = 0;
-                using var r = Bdd.Lire("SELECT MAX(NumerodeLivraison) as MaxID FROM CommandeLivraison");
-                if (r.Read()) livraisonID = r.GetInt32("MaxID");
-                r.Close();
+                using var r2 = Bdd.Lire("SELECT MAX(NumerodeLivraison) AS MaxID FROM CommandeLivraison");
+                if (r2.Read()) livraisonID = r2.GetInt32("MaxID");
+                r2.Close();
 
                 Bdd.Executer($"INSERT INTO Reçoit VALUES ('{Session.IdUtilisateur}', {livraisonID})");
                 Bdd.Executer($"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison) VALUES ('{adresseClient}', '{adresseDep}', 0, '00:00:00', '', {livraisonID})");

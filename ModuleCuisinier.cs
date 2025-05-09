@@ -1,11 +1,18 @@
 ﻿using Projet_PSI.Utils;
+using Projet_PSI.Utils;
 using System;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Module de gestion des cuisiniers pour l'administrateur, incluant la consultation,
+    /// l'ajout, la suppression et la modification de leur zone de livraison.
+    /// </summary>
     public static class ModuleCuisinier
     {
-        // === MENU ADMIN ===
+        /// <summary>
+        /// Lance le menu principal du module cuisinier (admin).
+        /// </summary>
         public static void Lancer()
         {
             bool retour = false;
@@ -39,12 +46,18 @@ namespace Projet_PSI.Modules
             }
         }
 
-        // === MENU CUISINIER CONNECTE ===
+        /// <summary>
+        /// Redirige vers le menu du cuisinier connecté.
+        /// </summary>
+        /// <param name="graphe">Le graphe des stations pour la simulation de trajet.</param>
         public static void LancerCuisinier(Graphe<Station> graphe)
         {
             ModuleCuisinierConnecte.Lancer(graphe);
         }
 
+        /// <summary>
+        /// Affiche la liste de tous les cuisiniers avec leurs informations clés.
+        /// </summary>
         private static void Afficher()
         {
             Console.Clear();
@@ -64,11 +77,14 @@ namespace Projet_PSI.Modules
                 string note = reader.GetString("Note");
                 string zone = reader.GetString("ZoneLivraison");
 
-                Console.WriteLine($"{id} - {prenom} {nom} ({ville}) - Note: {note} - Zone: {zone}");
+                Console.WriteLine($"{id} - {prenom} {nom} ({ville}) - Note : {note} - Zone : {zone}");
             }
             reader.Close();
         }
 
+        /// <summary>
+        /// Ajoute un nouveau cuisinier et crée ses entrées dans les tables Tier et Cuisinier.
+        /// </summary>
         private static void Ajouter()
         {
             Console.Clear();
@@ -105,7 +121,7 @@ namespace Projet_PSI.Modules
                     VALUES ({idGenere}, '{note}', FALSE, 0, '{zone}');";
 
                 Bdd.Executer(reqCuisinier);
-                Console.WriteLine($"Cuisinier ajouté avec succès (ID: {idGenere}) !");
+                Console.WriteLine($"Cuisinier ajouté avec succès (ID : {idGenere}) !");
             }
             catch (Exception ex)
             {
@@ -113,6 +129,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Supprime un cuisinier et ses données associées via son ID.
+        /// </summary>
         private static void Supprimer()
         {
             Console.Clear();
@@ -131,6 +150,9 @@ namespace Projet_PSI.Modules
             }
         }
 
+        /// <summary>
+        /// Modifie la zone de livraison d'un cuisinier existant.
+        /// </summary>
         private static void Modifier()
         {
             Console.Clear();
@@ -143,7 +165,7 @@ namespace Projet_PSI.Modules
             try
             {
                 string requete = $@"
-                    UPDATE Cuisinier SET ZoneLivraison = '{zone}' 
+                    UPDATE Cuisinier SET ZoneLivraison = '{zone}'
                     WHERE ID = {id};";
                 Bdd.Executer(requete);
                 Console.WriteLine("Zone mise à jour.");
@@ -155,3 +177,4 @@ namespace Projet_PSI.Modules
         }
     }
 }
+

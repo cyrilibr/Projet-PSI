@@ -7,8 +7,18 @@ using System.Xml.Serialization;
 
 namespace Projet_PSI.Modules
 {
+    /// <summary>
+    /// Fournit des méthodes génériques pour exporter des listes d'objets
+    /// au format JSON ou XML.
+    /// </summary>
     public static class Exporteur
     {
+        /// <summary>
+        /// Sérialise une liste d'objets au format JSON et écrit le résultat dans un fichier.
+        /// </summary>
+        /// <typeparam name="T">Type des objets à sérialiser.</typeparam>
+        /// <param name="objets">Liste d'objets à exporter.</param>
+        /// <param name="chemin">Chemin du fichier de sortie.</param>
         public static void ExporterJson<T>(List<T> objets, string chemin)
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
@@ -17,9 +27,15 @@ namespace Projet_PSI.Modules
             Console.WriteLine($"Export JSON terminé : {chemin}");
         }
 
+        /// <summary>
+        /// Sérialise une liste d'objets au format XML et écrit le résultat dans un fichier.
+        /// Vérifie l'absence de dictionnaires, non pris en charge par XmlSerializer.
+        /// </summary>
+        /// <typeparam name="T">Type des objets à sérialiser.</typeparam>
+        /// <param name="objets">Liste d'objets à exporter.</param>
+        /// <param name="chemin">Chemin du fichier de sortie.</param>
         public static void ExporterXml<T>(List<T> objets, string chemin)
         {
-            // Vérifie récursivement si le type T ou ses propriétés contiennent un IDictionary
             bool ContientDictionnaire(Type type)
             {
                 if (typeof(IDictionary).IsAssignableFrom(type) ||
