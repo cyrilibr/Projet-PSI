@@ -1,4 +1,4 @@
-﻿using System.Drawing.Drawing2D;
+﻿// Projet_PSI/FenetreGraphe.cs
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,10 +9,6 @@ using System.Windows.Forms;
 
 namespace Projet_PSI
 {
-    /// <summary>
-    /// Formulaire de visualisation du graphe de stations avec positions géographiques,
-    /// affichage des arêtes orientées, pondérées, et coloration.
-    /// </summary>
     public class FenetreGraphe<T> : Form
     {
         private Graphe<T> graphe;
@@ -47,6 +43,9 @@ namespace Projet_PSI
         private HashSet<int> floydVisites = new HashSet<int>();
         private Dictionary<int, Brush> coloration = new Dictionary<int, Brush>();
 
+        /// <summary>
+        /// Constructeur standard.
+        /// </summary>
         public FenetreGraphe(Graphe<T> graphe)
         {
             this.graphe = graphe;
@@ -56,6 +55,21 @@ namespace Projet_PSI
             InitializeComponents();
             CalculatePositions();
             Paint += DessinerGraphe;
+        }
+
+        /// <summary>
+        /// Constructeur surcharge : pré-sélectionne le départ et l'arrivée, et surligne le chemin Dijkstra.
+        /// </summary>
+        public FenetreGraphe(Graphe<T> graphe, int departId, int arriveeId)
+            : this(graphe)
+        {
+            nudDepart.Value = departId;
+            nudArrivee.Value = arriveeId;
+
+            foreach (var id in graphe.CheminDijkstra(departId, arriveeId))
+                dijkstraVisites.Add(id);
+
+            Invalidate();
         }
 
         private void InitializeComponents()
@@ -108,11 +122,11 @@ namespace Projet_PSI
             btnDFS = Create("DFS (1->tous)", BoutonDFS_Click);
             btnConnexe = Create("Est connexe ?", BoutonConnexe_Click);
             btnCycle = Create("Contient cycle ?", BoutonCycle_Click);
-            btnDijkstra = Create("Dijkstra (1->3)", BoutonDijkstra_Click);
-            btnBellman = Create("Bellman (11->30)", BoutonBellman_Click);
-            btnFloyd = Create("Floyd (6->22)", BoutonFloyd_Click);
+            btnDijkstra = Create("Dijkstra", BoutonDijkstra_Click);
+            btnBellman = Create("Bellman-Ford", BoutonBellman_Click);
+            btnFloyd = Create("Floyd-Warshall", BoutonFloyd_Click);
             btnComparer = Create("Comparer Algos", BoutonComparer_Click);
-            btnColoration = Create("Coloration Graphe", BoutonColoration_Click);
+            btnColoration = Create("Coloration", BoutonColoration_Click);
         }
 
         private void CalculatePositions()
@@ -147,7 +161,7 @@ namespace Projet_PSI
         private void DessinerGraphe(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
             // Arêtes
             foreach (var lien in graphe.Liens)
@@ -155,11 +169,7 @@ namespace Projet_PSI
                 if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id)) continue;
                 var p1 = positions[lien.Noeud1.Id];
                 var p2 = positions[lien.Noeud2.Id];
-
-                // Flèche si non bidirectionnel
                 DrawArrow(g, p1, p2, lien.Bidirectionnel);
-
-                // Poids au milieu
                 var mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
                 g.DrawString(lien.Poids.ToString(), Font, Brushes.DarkBlue, mid);
             }
@@ -188,7 +198,6 @@ namespace Projet_PSI
 
         private void DrawArrow(Graphics g, PointF a, PointF b, bool bidirectionnel)
         {
-
             const float arrowSize = 8f;
             float dx = b.X - a.X, dy = b.Y - a.Y;
             float len = (float)Math.Sqrt(dx * dx + dy * dy);
@@ -220,31 +229,25 @@ namespace Projet_PSI
         }
 
         private void BoutonListeAdj_Click(object s, EventArgs e)
-        {
-            string txt = "Liste d'adjacence:\n" + graphe.AfficherListeAdjacence();
-            AfficherEnPleinEcran("Liste d'adjacence", txt);
-        }
+            => AfficherEnPleinEcran("Liste d'adjacence", graphe.AfficherListeAdjacence());
+
         private void BoutonMatriceAdj_Click(object s, EventArgs e)
-        {
-            string txt = "Matrice d'adjacence:\n" + graphe.AfficherMatriceAdjacence();
-            AfficherEnPleinEcran("Matrice d'adjacence", txt);
-        }
+            => AfficherEnPleinEcran("Matrice d'adjacence", graphe.AfficherMatriceAdjacence());
+
         private void BoutonConnexe_Click(object s, EventArgs e)
-        {
-            bool res = graphe.EstConnexe();
-            AfficherEnPleinEcran("Connexe", $"Le graphe est connexe ? {res}");
-        }
+            => AfficherEnPleinEcran("Connexe", $"Le graphe est connexe ? {graphe.EstConnexe()}");
+
         private void BoutonCycle_Click(object s, EventArgs e)
-        {
-            bool res = graphe.ContientCycle();
-            AfficherEnPleinEcran("Cycle", $"Le graphe contient un cycle ? {res}");
-        }
+            => AfficherEnPleinEcran("Cycle", $"Le graphe contient un cycle ? {graphe.ContientCycle()}");
+
         private void BoutonBFS_Click(object s, EventArgs e)
         {
             ClearAll();
             if (graphe.Noeuds.ContainsKey(DepartId))
             {
-                var q = new Queue<int>(); q.Enqueue(DepartId); bfsVisites.Add(DepartId);
+                var q = new Queue<int>();
+                q.Enqueue(DepartId);
+                bfsVisites.Add(DepartId);
                 while (q.Count > 0)
                 {
                     int u = q.Dequeue();
@@ -254,12 +257,14 @@ namespace Projet_PSI
             }
             Invalidate();
         }
+
         private void BoutonDFS_Click(object s, EventArgs e)
         {
             ClearAll();
             if (graphe.Noeuds.ContainsKey(1))
             {
-                var stack = new Stack<int>(); stack.Push(1);
+                var stack = new Stack<int>();
+                stack.Push(1);
                 while (stack.Count > 0)
                 {
                     int u = stack.Pop();
@@ -270,6 +275,7 @@ namespace Projet_PSI
             }
             Invalidate();
         }
+
         private void BoutonDijkstra_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -278,6 +284,7 @@ namespace Projet_PSI
                     dijkstraVisites.Add(id);
             Invalidate();
         }
+
         private void BoutonBellman_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -286,6 +293,7 @@ namespace Projet_PSI
                     bellmanVisites.Add(id);
             Invalidate();
         }
+
         private void BoutonFloyd_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -294,6 +302,7 @@ namespace Projet_PSI
                     floydVisites.Add(id);
             Invalidate();
         }
+
         private void BoutonComparer_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -318,7 +327,6 @@ namespace Projet_PSI
             sw.Stop();
             results.Add(("Floyd-Warshall", sw.ElapsedMilliseconds, chFloy));
 
-            // Sélection du chemin le plus rapide pour la mise en évidence
             var fastest = results.OrderBy(r => r.t).First();
             foreach (var id in fastest.chemin)
             {
@@ -334,49 +342,38 @@ namespace Projet_PSI
             AfficherEnPleinEcran("Comparaison des algorithmes", msg);
             Invalidate();
         }
+
         private void BoutonColoration_Click(object s, EventArgs e)
         {
             ClearAll();
+            Brush[] palette = {
+                Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon,
+                Brushes.LightYellow, Brushes.LightPink,  Brushes.LightGray
+            };
 
-            // Palette circulaire
-            Brush[] palette =
-            {
-        Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon,
-        Brushes.LightYellow, Brushes.LightPink,  Brushes.LightGray
-    };
-
-            // Welsh–Powell : nœuds triés par degré décroissant
             var ordre = graphe.Noeuds.Values
-                                 .OrderByDescending(n => n.Voisins.Count)
-                                 .Select(n => n.Id)
-                                 .ToList();
+                            .OrderByDescending(n => n.Voisins.Count)
+                            .Select(n => n.Id)
+                            .ToList();
 
-            var couleurParNoeud = new Dictionary<int, int>(); // idCouleur
-
+            var couleurParNoeud = new Dictionary<int, int>();
             int couleurCourante = 0;
             foreach (var id in ordre)
             {
                 if (couleurParNoeud.ContainsKey(id)) continue;
-
                 couleurParNoeud[id] = couleurCourante;
-
-                // Tente d’attribuer la même couleur à tous les nœuds non adjacents
                 foreach (var autre in ordre)
                 {
                     if (couleurParNoeud.ContainsKey(autre)) continue;
-
                     bool conflit = graphe.Noeuds[autre].Voisins
                                            .Any(v => couleurParNoeud.TryGetValue(v.Id, out int c) &&
                                                      c == couleurCourante);
-
                     if (!conflit)
                         couleurParNoeud[autre] = couleurCourante;
                 }
-
                 couleurCourante++;
             }
 
-            // Conversion vers les Brushs utilisés au dessin
             foreach (var kv in couleurParNoeud)
                 coloration[kv.Key] = palette[kv.Value % palette.Length];
 
@@ -387,8 +384,10 @@ namespace Projet_PSI
         {
             var fen = new Form { Text = titre, WindowState = FormWindowState.Maximized };
             var tb = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, Dock = DockStyle.Fill, Text = contenu };
-            fen.Controls.Add(tb); fen.ShowDialog();
+            fen.Controls.Add(tb);
+            fen.ShowDialog();
         }
+
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);

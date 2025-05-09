@@ -1,12 +1,14 @@
-﻿using System;
+﻿// Projet_PSI/Modules/ModuleChemin.cs
+using System;
 using System.Linq;
+using System.Windows.Forms;
 using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
     /// <summary>
     /// Module responsable du calcul et de l'affichage du chemin de livraison
-    /// entre le cuisinier et le client via le réseau de stations.
+    /// entre un cuisinier et un client via le réseau de stations.
     /// </summary>
     public static class ModuleChemin
     {
@@ -25,7 +27,6 @@ namespace Projet_PSI.Modules
             Console.Write("ID du client : ");
             string idClient = Console.ReadLine();
 
-            // Récupération des adresses complètes
             string adresseCuisinier = ObtenirAdresseComplete(idCuisinier);
             string adresseClient = ObtenirAdresseComplete(idClient);
 
@@ -36,7 +37,6 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            // Recherche des stations les plus proches
             int idStationDep = GeoUtils.StationLaPlusProche(graphe, adresseCuisinier);
             int idStationArr = GeoUtils.StationLaPlusProche(graphe, adresseClient);
 
@@ -47,32 +47,21 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            // Affichage des stations identifiées
-            Console.WriteLine($"\nStation la plus proche du cuisinier : {graphe.Noeuds[idStationDep].Data.Libelle} (ID: {idStationDep})");
-            Console.WriteLine($"Station la plus proche du client : {graphe.Noeuds[idStationArr].Data.Libelle} (ID: {idStationArr})");
-
-            // Calcul du plus court chemin
             var chemin = graphe.CheminDijkstra(idStationDep, idStationArr);
 
             if (chemin.Count == 0)
             {
                 Console.WriteLine("\nAucun chemin trouvé entre ces stations.");
+                Console.ReadKey();
+                return;
             }
-            else
+
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            using (var fen = new FenetreGraphe<Station>(graphe, idStationDep, idStationArr))
             {
-                Console.WriteLine("\n--- Chemin le plus court ---");
-                foreach (var stationId in chemin)
-                {
-                    var station = graphe.Noeuds[stationId].Data;
-                    Console.WriteLine($" - {station.Libelle} (Ligne : {station.LibelLigne})");
-                }
-
-                Console.WriteLine($"\nDistance estimée : {chemin.Count * 0.5} km");
-                Console.WriteLine($"Temps estimé : {chemin.Count * 2} minutes");
+                fen.ShowDialog();
             }
-
-            Console.WriteLine("\nAppuyez sur une touche pour revenir au menu...");
-            Console.ReadKey();
         }
 
         /// <summary>

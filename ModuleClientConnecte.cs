@@ -1,5 +1,7 @@
-﻿using Projet_PSI.Utils;
+﻿// Projet_PSI/Modules/ModuleClientConnecte.cs
 using System;
+using System.Windows.Forms;
+using Projet_PSI.Utils;
 
 namespace Projet_PSI.Modules
 {
@@ -12,7 +14,7 @@ namespace Projet_PSI.Modules
         /// <summary>
         /// Lance le menu principal du client connecté.
         /// </summary>
-        /// <param name="graphe">Le graphe des stations utilisé pour simuler les trajets.</param>
+        /// <param name="graphe">Le graphe des stations pour calculer les trajets.</param>
         public static void Lancer(Graphe<Station> graphe)
         {
             bool retour = false;
@@ -25,7 +27,7 @@ namespace Projet_PSI.Modules
                 Console.WriteLine("3. Simuler un trajet entre deux stations");
                 Console.WriteLine("4. Calculer prix et passer commande");
                 Console.WriteLine("0. Se déconnecter");
-                Console.Write("Choix : ");
+                Console.Write("\nChoix : ");
                 string choix = Console.ReadLine();
 
                 switch (choix)
@@ -61,11 +63,11 @@ namespace Projet_PSI.Modules
             if (r.Read())
             {
                 Console.WriteLine("\n--- Mes informations ---");
-                Console.WriteLine($"Nom : {r.GetString("NOMT")} ");
-                Console.WriteLine($"Prénom : {r.GetString("PRENOMT")} ");
-                Console.WriteLine($"Adresse : {r.GetString("ADR")}, {r.GetString("CODEPOSTAL")} {r.GetString("VILLE")} ");
-                Console.WriteLine($"Email : {r.GetString("EMAIL")} ");
-                Console.WriteLine($"Téléphone : {r.GetString("TEL")} ");
+                Console.WriteLine($"Nom : {r.GetString("NOMT")}");
+                Console.WriteLine($"Prénom : {r.GetString("PRENOMT")}");
+                Console.WriteLine($"Adresse : {r.GetString("ADR")}, {r.GetString("CODEPOSTAL")} {r.GetString("VILLE")}");
+                Console.WriteLine($"Email : {r.GetString("EMAIL")}");
+                Console.WriteLine($"Téléphone : {r.GetString("TEL")}");
             }
             r.Close();
         }
@@ -75,13 +77,17 @@ namespace Projet_PSI.Modules
         /// </summary>
         private static void ModifierInfos()
         {
-            Console.Write("Nouveau téléphone : "); string tel = Console.ReadLine();
-            Console.Write("Nouvelle adresse : "); string adr = Console.ReadLine();
-            Console.Write("Nouveau code postal : "); string cp = Console.ReadLine();
-            Console.Write("Nouvelle ville : "); string ville = Console.ReadLine();
+            Console.Write("Nouveau téléphone : ");
+            string tel = Console.ReadLine();
+            Console.Write("Nouvelle adresse : ");
+            string adr = Console.ReadLine();
+            Console.Write("Nouveau code postal : ");
+            string cp = Console.ReadLine();
+            Console.Write("Nouvelle ville : ");
+            string ville = Console.ReadLine();
 
             string req = $@"
-                UPDATE Tier SET 
+                UPDATE Tier SET
                     TEL = '{tel}',
                     ADR = '{adr}',
                     CODEPOSTAL = '{cp}',
@@ -93,7 +99,7 @@ namespace Projet_PSI.Modules
         }
 
         /// <summary>
-        /// Simule un trajet entre deux adresses en utilisant le plus court chemin sur le graphe.
+        /// Simule un trajet entre deux adresses et affiche le résultat graphiquement.
         /// </summary>
         /// <param name="graphe">Le graphe des stations.</param>
         private static void SimulerTrajet(Graphe<Station> graphe)
@@ -119,12 +125,12 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            Console.WriteLine("\n--- Chemin suggéré ---");
-            foreach (var id in chemin)
-                Console.WriteLine($" - {graphe.Noeuds[id].Data}");
-
-            Console.WriteLine($"\nDistance estimée : {chemin.Count * 0.5} km");
-            Console.WriteLine($"Temps estimé : {chemin.Count * 2} minutes");
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            using (var fen = new FenetreGraphe<Station>(graphe, idDep, idArr))
+            {
+                fen.ShowDialog();
+            }
         }
 
         /// <summary>
@@ -147,57 +153,63 @@ namespace Projet_PSI.Modules
                 r.Close();
             }
 
-            Console.Write("Date de livraison souhaitée (yyyy-mm-dd hh:mm:ss) : "); string date = Console.ReadLine();
-            Console.Write("Frais de livraison : "); string frais = Console.ReadLine();
+            Console.Write("Date de livraison souhaitée (yyyy-MM-dd HH:mm:ss) : ");
+            string date = Console.ReadLine();
+            Console.Write("Frais de livraison : ");
+            string frais = Console.ReadLine();
 
             decimal prixTotal = 0;
             string metsChoisis = "";
 
-            Console.WriteLine("Ajoutez des mets à la commande. Tapez 'fin' pour terminer.");
+            Console.WriteLine("Ajoutez des mets à la commande (tapez 'fin' pour terminer)");
             while (true)
             {
                 Console.Write("ID du mets : ");
                 string idMets = Console.ReadLine();
-                if (idMets.ToLower() == "fin") break;
+                if (idMets.Equals("fin", StringComparison.OrdinalIgnoreCase)) break;
 
                 Console.Write("Quantité : ");
                 if (!int.TryParse(Console.ReadLine(), out int quantite)) continue;
 
                 string prixReq = $"SELECT PrixParPersonne FROM Mets WHERE ID = '{idMets}'";
-                using var r = Bdd.Lire(prixReq);
-                if (r.Read())
+                using var r2 = Bdd.Lire(prixReq);
+                if (r2.Read())
                 {
-                    decimal prixMets = r.GetDecimal("PrixParPersonne");
+                    decimal prixMets = r2.GetDecimal("PrixParPersonne");
                     prixTotal += prixMets * quantite;
-                    metsChoisis += $"INSERT INTO Contient VALUES ('{idMets}', @IDCMD, {quantite});\n";
+                    metsChoisis += $"INSERT INTO Contient VALUES('{idMets}', @IDCMD, {quantite});\n";
                 }
-                r.Close();
+                r2.Close();
             }
 
-            prixTotal += Convert.ToDecimal(frais);
+            prixTotal += Convert.ToDecimal(frais, System.Globalization.CultureInfo.InvariantCulture);
 
             try
             {
                 string insertCmd = $@"
-                    INSERT INTO CommandeLivraison (NumeroDeCommande, DateDeLivraisonSouhaitee, FraisDeLivraison, Prix, EtatdeLaCommande, ID_Cuisinier)
-                    VALUES (NULL, '{date}', {frais}, {prixTotal}, 'En préparation', '{idCuisinier}');";
+                    INSERT INTO CommandeLivraison
+                      (NumeroDeLivraison, DateDeLivraisonSouhaitee, FraisDeLivraison, Prix,
+                       EtatdeLaCommande, ID_Cuisinier)
+                    VALUES
+                      (NULL, '{date}', {frais}, {prixTotal}, 'En préparation', {idCuisinier});";
                 Bdd.Executer(insertCmd);
 
-                int livraisonID = 0;
-                using var r2 = Bdd.Lire("SELECT MAX(NumerodeLivraison) AS MaxID FROM CommandeLivraison");
-                if (r2.Read()) livraisonID = r2.GetInt32("MaxID");
-                r2.Close();
+                int livraisonID;
+                using var r3 = Bdd.Lire("SELECT MAX(NumerodeLivraison) AS MaxID FROM CommandeLivraison");
+                r3.Read();
+                livraisonID = r3.GetInt32("MaxID");
+                r3.Close();
 
-                Bdd.Executer($"INSERT INTO Reçoit VALUES ('{Session.IdUtilisateur}', {livraisonID})");
-                Bdd.Executer($"INSERT INTO Trajet (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison) VALUES ('{adresseClient}', '{adresseDep}', 0, '00:00:00', '', {livraisonID})");
+                Bdd.Executer($"INSERT INTO Reçoit VALUES({Session.IdUtilisateur}, {livraisonID});");
+                Bdd.Executer($@"
+                    INSERT INTO Trajet
+                      (AdresseArrivee, AdresseDepart, Distance, TempsEstime, CheminPris, NumerodeLivraison)
+                    VALUES
+                      ('{adresseClient}', '{adresseDep}', 0, '00:00:00', '', {livraisonID});");
 
-                foreach (string ligne in metsChoisis.Split('\n'))
+                foreach (var ligne in metsChoisis.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    if (!string.IsNullOrWhiteSpace(ligne))
-                    {
-                        string requete = ligne.Replace("@IDCMD", livraisonID.ToString());
-                        Bdd.Executer(requete);
-                    }
+                    Bdd.Executer(ligne.Replace("@IDCMD", livraisonID.ToString()));
                 }
 
                 Console.WriteLine("Commande créée avec succès.");
