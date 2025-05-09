@@ -43,15 +43,32 @@ namespace Projet_PSI.Utils
         /// </summary>
         public static int TrouverStationLaPlusProche(Graphe<Station> graphe, double lat, double lon)
         {
+            const double R = 6371000; // Rayon de la Terre en mètres
+
+            // Conversion en radians
+            double toRad(double angle) => angle * Math.PI / 180.0;
+
+            double latRad = toRad(lat);
+            double lonRad = toRad(lon);
+
             double minDist = double.MaxValue;
             int idProche = -1;
 
             foreach (var kvp in graphe.Noeuds)
             {
                 var station = kvp.Value.Data;
-                double dLat = lat - station.Latitude;
-                double dLon = lon - station.Longitude;
-                double dist = Math.Sqrt(dLat * dLat + dLon * dLon);
+                double stationLatRad = toRad(station.Latitude);
+                double stationLonRad = toRad(station.Longitude);
+
+                double dLat = stationLatRad - latRad;
+                double dLon = stationLonRad - lonRad;
+
+                double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+                         + Math.Cos(latRad) * Math.Cos(stationLatRad)
+                         * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
+                double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+                double dist = R * c; 
 
                 if (dist < minDist)
                 {
@@ -62,6 +79,7 @@ namespace Projet_PSI.Utils
 
             return idProche;
         }
+
 
         /// <summary>
         /// Combine géocodage et recherche de station la plus proche.

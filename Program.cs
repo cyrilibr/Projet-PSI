@@ -8,7 +8,6 @@ namespace Projet_PSI
         [STAThread]
         static void Main(string[] args)
         {
-            Console.WriteLine("Chargement du graphe...");
             var graphe = GrapheLoader.ChargerDepuisBDD();
 
             Console.WriteLine("Choisissez le mode d'affichage :");
@@ -19,14 +18,17 @@ namespace Projet_PSI
 
             if (choix == "1")
             {
-                // Authentification utilisateur selon rôle
                 Modules.ModuleAuthentification.Lancer(graphe);
             }
             else if (choix == "2")
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Form fenetre = new FenetreGraphe<Station>(graphe);
+
+                var grapheStations = GrapheLoader.ChargerDepuisBDD();
+                Console.WriteLine($"Graphe chargé avec {grapheStations.Noeuds.Count} stations unifiées et {grapheStations.Liens.Count} liens orientés.");
+
+                Form fenetre = new FenetreGraphe<Station>(grapheStations);
                 Application.Run(fenetre);
             }
             else
