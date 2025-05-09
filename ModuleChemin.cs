@@ -25,7 +25,6 @@ namespace Projet_PSI.Modules
             Console.Write("ID du client : ");
             string idClient = Console.ReadLine();
 
-            // Récupération des adresses complètes
             string adresseCuisinier = ObtenirAdresseComplete(idCuisinier);
             string adresseClient = ObtenirAdresseComplete(idClient);
 
@@ -36,7 +35,6 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            // Recherche des stations les plus proches
             int idStationDep = GeoUtils.StationLaPlusProche(graphe, adresseCuisinier);
             int idStationArr = GeoUtils.StationLaPlusProche(graphe, adresseClient);
 
@@ -47,11 +45,9 @@ namespace Projet_PSI.Modules
                 return;
             }
 
-            // Affichage des stations identifiées
             Console.WriteLine($"\nStation la plus proche du cuisinier : {graphe.Noeuds[idStationDep].Data.Libelle} (ID: {idStationDep})");
             Console.WriteLine($"Station la plus proche du client : {graphe.Noeuds[idStationArr].Data.Libelle} (ID: {idStationArr})");
 
-            // Calcul du plus court chemin
             var chemin = graphe.CheminDijkstra(idStationDep, idStationArr);
 
             if (chemin.Count == 0)

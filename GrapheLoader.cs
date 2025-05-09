@@ -81,6 +81,7 @@ namespace Projet_PSI
                     continue;
 
                 int poidsMinutes = raw.TempsChangement;
+                poidsMinutes = 3;
 
                 if (raw.Precedent.HasValue &&
                     mapIdBddVersUnifie.TryGetValue(raw.Precedent.Value, out int vPrev) &&

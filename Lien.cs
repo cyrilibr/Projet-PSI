@@ -1,5 +1,4 @@
-﻿// Projet_PSI/Lien.cs
-namespace Projet_PSI
+﻿namespace Projet_PSI
 {
     public class Lien<T>
     {

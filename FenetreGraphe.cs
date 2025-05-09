@@ -149,22 +149,18 @@ namespace Projet_PSI
             var g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            // Arêtes
             foreach (var lien in graphe.Liens)
             {
                 if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id)) continue;
                 var p1 = positions[lien.Noeud1.Id];
                 var p2 = positions[lien.Noeud2.Id];
 
-                // Flèche si non bidirectionnel
                 DrawArrow(g, p1, p2, lien.Bidirectionnel);
 
-                // Poids au milieu
                 var mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
                 g.DrawString(lien.Poids.ToString(), Font, Brushes.DarkBlue, mid);
             }
 
-            // Nœuds
             foreach (var kv in graphe.Noeuds)
             {
                 if (!positions.TryGetValue(kv.Key, out var pos)) continue;

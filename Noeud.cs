@@ -1,13 +1,12 @@
-﻿// Projet_PSI/Noeud.cs
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Projet_PSI
 {
     public class Noeud<T>
     {
         private int id;
-        private T data;//Données de type T associées au nœud
-        private List<Noeud<T>> voisins;//Liste des nœuds voisins
+        private T data;
+        private List<Noeud<T>> voisins;
 
         /// <summary>
         /// Obtient ou définit les identifiant associées au nœud.

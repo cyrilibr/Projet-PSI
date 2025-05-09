@@ -24,7 +24,6 @@ namespace Projet_PSI.Modules
                 Console.Write("Mot de passe : ");
                 string mdp = Console.ReadLine();
 
-                // Authentification admin (identifiants hardcodés)
                 if (email == "admin" && mdp == "adminpass")
                 {
                     Session.IdUtilisateur = 0;
@@ -36,7 +35,6 @@ namespace Projet_PSI.Modules
                     return;
                 }
 
-                // Recherche de l'utilisateur dans la table Tier
                 string requete = $"SELECT ID FROM Tier WHERE EMAIL = '{email}' AND MDP = '{mdp}'";
                 using var reader = Bdd.Lire(requete);
 
@@ -51,7 +49,6 @@ namespace Projet_PSI.Modules
                 int id = reader.GetInt32("ID");
                 reader.Close();
 
-                // Détermination du rôle (client ou cuisinier)
                 bool estClient = ExisteDansTable("Client", id);
                 bool estCuisinier = ExisteDansTable("Cuisinier", id);
 

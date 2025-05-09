@@ -8,6 +8,7 @@ namespace Projet_PSI
         [STAThread]
         static void Main(string[] args)
         {
+            Console.WriteLine("Application Liv’In Paris");
             var graphe = GrapheLoader.ChargerDepuisBDD();
 
             Console.WriteLine("Choisissez le mode d'affichage :");

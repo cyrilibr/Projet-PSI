@@ -239,7 +239,6 @@ namespace Projet_PSI.Modules
                 Console.WriteLine($"  Régime: {reader.GetString("RegimeAlimentaire")}, Péremption: {reader.GetDateTime("DateDePeremption"):yyyy-MM-dd}");
                 Console.WriteLine($"  Disponibilité: {(reader.GetBoolean("Disponibilite") ? "Oui" : "Non")}, Popularité: {reader.GetInt32("Popularite")}");
 
-                // Afficher les ingrédients du plat
                 AfficherIngredientsPourPlat(reader.GetString("ID"));
             }
             reader.Close();

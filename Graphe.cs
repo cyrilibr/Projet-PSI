@@ -1,5 +1,4 @@
-﻿// Projet_PSI/Graphe.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,10 +6,10 @@ namespace Projet_PSI
 {
     public class Graphe<T>
     {
-        private Dictionary<int, Noeud<T>> noeuds;// Associe ID -> Noeud<T>
-        private List<Lien<T>> liens;// Liste des liens (arêtes)
-        private int[,] matriceAdjacence;// Matrice d’adjacence
-        private int taille;// Nombre maximal de nœuds (dimensions de la matrice)
+        private Dictionary<int, Noeud<T>> noeuds;
+        private List<Lien<T>> liens;
+        private int[,] matriceAdjacence;
+        private int taille;
 
         /// <summary>
         /// Dictionnaire des nœuds : associe un identifiant entier à un Noeud<T>.
@@ -71,7 +70,6 @@ namespace Projet_PSI
             n1.AjouterVoisin(n2);
             n2.AjouterVoisin(n1);
 
-            // Si un poids existe déjà, on garde le plus GRAND
             int actuel = matriceAdjacence[id1, id2];
             if (poids > actuel)
             {

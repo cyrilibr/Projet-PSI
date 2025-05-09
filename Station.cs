@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic; // Ajout
-using System.Linq; // Ajout
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Projet_PSI
 {
