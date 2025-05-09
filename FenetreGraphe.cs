@@ -13,18 +13,41 @@ namespace Projet_PSI
     /// Formulaire de visualisation du graphe de stations avec positions géographiques,
     /// affichage des arêtes orientées, pondérées, et coloration.
     /// </summary>
+    /// <typeparam name="T">Type des données stockées dans les nœuds du graphe.</typeparam>
     public class FenetreGraphe<T> : Form
     {
+        /// <summary>
+        /// Graphe générique à visualiser.
+        /// </summary>
         private Graphe<T> graphe;
+
+        /// <summary>
+        /// Positions géographiques calculées pour chaque identifiant de nœud.
+        /// </summary>
         private Dictionary<int, PointF> positions;
+
         private const int rayon = 10;
         private const int margeX = 50;
         private const int margeY = 50;
 
+        /// <summary>
+        /// Contrôle pour sélectionner l'identifiant du nœud de départ.
+        /// </summary>
         private NumericUpDown nudDepart;
+
+        /// <summary>
+        /// Contrôle pour sélectionner l'identifiant du nœud d'arrivée.
+        /// </summary>
         private NumericUpDown nudArrivee;
 
+        /// <summary>
+        /// Obtient l'identifiant sélectionné comme point de départ.
+        /// </summary>
         private int DepartId => (int)nudDepart?.Value;
+
+        /// <summary>
+        /// Obtient l'identifiant sélectionné comme point d'arrivée.
+        /// </summary>
         private int ArriveeId => (int)nudArrivee?.Value;
 
         private Button btnReset;
@@ -47,6 +70,10 @@ namespace Projet_PSI
         private HashSet<int> floydVisites = new HashSet<int>();
         private Dictionary<int, Brush> coloration = new Dictionary<int, Brush>();
 
+        /// <summary>
+        /// Initialise une nouvelle instance de <see cref="FenetreGraphe{T}"/>.
+        /// </summary>
+        /// <param name="graphe">Graphe à visualiser.</param>
         public FenetreGraphe(Graphe<T> graphe)
         {
             this.graphe = graphe;
@@ -58,6 +85,9 @@ namespace Projet_PSI
             Paint += DessinerGraphe;
         }
 
+        /// <summary>
+        /// Initialise et place tous les composants graphiques du formulaire.
+        /// </summary>
         private void InitializeComponents()
         {
             int x = margeX;
@@ -76,7 +106,7 @@ namespace Projet_PSI
                 Width = 60
             };
             Controls.Add(nudDepart);
-            x += (int)nudDepart.Width + espace;
+            x += nudDepart.Width + espace;
 
             var lblArrivee = new Label { Text = "Arrivée ID :", Location = new Point(x, y), AutoSize = true };
             Controls.Add(lblArrivee);
@@ -90,7 +120,7 @@ namespace Projet_PSI
                 Width = 60
             };
             Controls.Add(nudArrivee);
-            x += (int)nudArrivee.Width + espace;
+            x += nudArrivee.Width + espace;
 
             Button Create(string text, EventHandler handler)
             {
@@ -115,6 +145,9 @@ namespace Projet_PSI
             btnColoration = Create("Coloration Graphe", BoutonColoration_Click);
         }
 
+        /// <summary>
+        /// Calcule les positions 2D des nœuds du graphe à partir de leurs coordonnées géographiques.
+        /// </summary>
         private void CalculatePositions()
         {
             var stations = graphe.Noeuds.Values
@@ -144,23 +177,31 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Dessine le graphe (arêtes, flèches, poids et nœuds) lors de l'événement Paint.
+        /// </summary>
         private void DessinerGraphe(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            // Dessin des arêtes
             foreach (var lien in graphe.Liens)
             {
-                if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id)) continue;
+                if (!positions.ContainsKey(lien.Noeud1.Id) || !positions.ContainsKey(lien.Noeud2.Id))
+                    continue;
+
                 var p1 = positions[lien.Noeud1.Id];
                 var p2 = positions[lien.Noeud2.Id];
 
                 DrawArrow(g, p1, p2, lien.Bidirectionnel);
 
+                // Affichage du poids au milieu de l'arête
                 var mid = new PointF((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
                 g.DrawString(lien.Poids.ToString(), Font, Brushes.DarkBlue, mid);
             }
 
+            // Dessin des nœuds
             foreach (var kv in graphe.Noeuds)
             {
                 if (!positions.TryGetValue(kv.Key, out var pos)) continue;
@@ -182,14 +223,17 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Trace une flèche entre deux points, optionnellement bidirectionnelle.
+        /// </summary>
         private void DrawArrow(Graphics g, PointF a, PointF b, bool bidirectionnel)
         {
-
             const float arrowSize = 8f;
             float dx = b.X - a.X, dy = b.Y - a.Y;
             float len = (float)Math.Sqrt(dx * dx + dy * dy);
             if (len < 1e-3) return;
             float ux = dx / len, uy = dy / len;
+
             var src = new PointF(a.X + ux * rayon, a.Y + uy * rayon);
             var dst = new PointF(b.X - ux * rayon, b.Y - uy * rayon);
 
@@ -205,6 +249,9 @@ namespace Projet_PSI
             }
         }
 
+        /// <summary>
+        /// Réinitialise tous les états de parcours et de coloration.
+        /// </summary>
         private void ClearAll()
         {
             bfsVisites.Clear();
@@ -215,26 +262,45 @@ namespace Projet_PSI
             coloration.Clear();
         }
 
+        /// <summary>
+        /// Affiche la liste d'adjacence dans une fenêtre maximisée.
+        /// </summary>
         private void BoutonListeAdj_Click(object s, EventArgs e)
         {
             string txt = "Liste d'adjacence:\n" + graphe.AfficherListeAdjacence();
             AfficherEnPleinEcran("Liste d'adjacence", txt);
         }
+
+        /// <summary>
+        /// Affiche la matrice d'adjacence dans une fenêtre maximisée.
+        /// </summary>
         private void BoutonMatriceAdj_Click(object s, EventArgs e)
         {
             string txt = "Matrice d'adjacence:\n" + graphe.AfficherMatriceAdjacence();
             AfficherEnPleinEcran("Matrice d'adjacence", txt);
         }
+
+        /// <summary>
+        /// Vérifie et affiche si le graphe est connexe.
+        /// </summary>
         private void BoutonConnexe_Click(object s, EventArgs e)
         {
             bool res = graphe.EstConnexe();
             AfficherEnPleinEcran("Connexe", $"Le graphe est connexe ? {res}");
         }
+
+        /// <summary>
+        /// Vérifie et affiche si le graphe contient un cycle.
+        /// </summary>
         private void BoutonCycle_Click(object s, EventArgs e)
         {
             bool res = graphe.ContientCycle();
             AfficherEnPleinEcran("Cycle", $"Le graphe contient un cycle ? {res}");
         }
+
+        /// <summary>
+        /// Parcours en largeur (BFS) depuis l'identifiant sélectionné.
+        /// </summary>
         private void BoutonBFS_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -250,12 +316,16 @@ namespace Projet_PSI
             }
             Invalidate();
         }
+
+        /// <summary>
+        /// Parcours en profondeur (DFS) depuis l'identifiant sélectionné.
+        /// </summary>
         private void BoutonDFS_Click(object s, EventArgs e)
         {
             ClearAll();
-            if (graphe.Noeuds.ContainsKey(1))
+            if (graphe.Noeuds.ContainsKey(DepartId))
             {
-                var stack = new Stack<int>(); stack.Push(1);
+                var stack = new Stack<int>(); stack.Push(DepartId);
                 while (stack.Count > 0)
                 {
                     int u = stack.Pop();
@@ -266,6 +336,10 @@ namespace Projet_PSI
             }
             Invalidate();
         }
+
+        /// <summary>
+        /// Calcule et affiche le plus court chemin selon Dijkstra.
+        /// </summary>
         private void BoutonDijkstra_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -274,6 +348,10 @@ namespace Projet_PSI
                     dijkstraVisites.Add(id);
             Invalidate();
         }
+
+        /// <summary>
+        /// Calcule et affiche le plus court chemin selon Bellman-Ford.
+        /// </summary>
         private void BoutonBellman_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -282,6 +360,10 @@ namespace Projet_PSI
                     bellmanVisites.Add(id);
             Invalidate();
         }
+
+        /// <summary>
+        /// Calcule et affiche le plus court chemin selon Floyd-Warshall.
+        /// </summary>
         private void BoutonFloyd_Click(object s, EventArgs e)
         {
             ClearAll();
@@ -290,11 +372,14 @@ namespace Projet_PSI
                     floydVisites.Add(id);
             Invalidate();
         }
+
+        /// <summary>
+        /// Compare les temps d'exécution des trois algorithmes de plus court chemin et met en évidence le plus rapide.
+        /// </summary>
         private void BoutonComparer_Click(object s, EventArgs e)
         {
             ClearAll();
-            if (!graphe.Noeuds.ContainsKey(DepartId) || !graphe.Noeuds.ContainsKey(ArriveeId))
-                return;
+            if (!graphe.Noeuds.ContainsKey(DepartId) || !graphe.Noeuds.ContainsKey(ArriveeId)) return;
 
             var results = new List<(string nom, long t, List<int> chemin)>();
             var sw = Stopwatch.StartNew();
@@ -314,7 +399,6 @@ namespace Projet_PSI
             sw.Stop();
             results.Add(("Floyd-Warshall", sw.ElapsedMilliseconds, chFloy));
 
-            // Sélection du chemin le plus rapide pour la mise en évidence
             var fastest = results.OrderBy(r => r.t).First();
             foreach (var id in fastest.chemin)
             {
@@ -323,31 +407,27 @@ namespace Projet_PSI
                 else if (fastest.nom == "Floyd-Warshall") floydVisites.Add(id);
             }
 
-            string msg = string.Join("\n",
-                          results.Select(r => $"{r.nom} : {r.t} ms (Chemin : {string.Join("-", r.chemin)})"))
-                      + $"\n\nLe plus rapide est : {fastest.nom}";
+            string msg = string.Join("\n", results.Select(r => $"{r.nom} : {r.t} ms (Chemin : {string.Join("-", r.chemin)})"))
+                + $"\n\nLe plus rapide est : {fastest.nom}";
 
             AfficherEnPleinEcran("Comparaison des algorithmes", msg);
             Invalidate();
         }
+
+        /// <summary>
+        /// Colourie le graphe en utilisant l'algorithme de Welsh-Powell.
+        /// </summary>
         private void BoutonColoration_Click(object s, EventArgs e)
         {
             ClearAll();
+            Brush[] palette = {Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon, Brushes.LightYellow, Brushes.LightPink,  Brushes.LightGray};
 
-            // Palette circulaire
-            Brush[] palette =
-            {
-        Brushes.LightBlue, Brushes.LightGreen, Brushes.LightSalmon,
-        Brushes.LightYellow, Brushes.LightPink,  Brushes.LightGray
-    };
-
-            // Welsh–Powell : nœuds triés par degré décroissant
             var ordre = graphe.Noeuds.Values
                                  .OrderByDescending(n => n.Voisins.Count)
                                  .Select(n => n.Id)
                                  .ToList();
 
-            var couleurParNoeud = new Dictionary<int, int>(); // idCouleur
+            var couleurParNoeud = new Dictionary<int, int>();
 
             int couleurCourante = 0;
             foreach (var id in ordre)
@@ -356,7 +436,6 @@ namespace Projet_PSI
 
                 couleurParNoeud[id] = couleurCourante;
 
-                // Tente d’attribuer la même couleur à tous les nœuds non adjacents
                 foreach (var autre in ordre)
                 {
                     if (couleurParNoeud.ContainsKey(autre)) continue;
@@ -372,7 +451,6 @@ namespace Projet_PSI
                 couleurCourante++;
             }
 
-            // Conversion vers les Brushs utilisés au dessin
             foreach (var kv in couleurParNoeud)
                 coloration[kv.Key] = palette[kv.Value % palette.Length];
 
