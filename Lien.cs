@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Projet_PSI
+﻿namespace Projet_PSI
 {
+    /// <summary>
+    /// Classe générique représentant un lien (arête) entre deux nœuds.
+    /// </summary>
+    /// <typeparam name="T">Le type de donnée contenu dans les nœuds</typeparam>
     public class Lien<T>
     {
-        private Noeud<T> noeud1;//Premier nœud du lien
-        private Noeud<T> noeud2;//Deuxième nœud du lien
-        private int poids;//Poids du lien (coût, distance, etc.)
+        public Noeud<T> noeud1;
+        public Noeud<T> noeud2;
+        public int poids;
+        public bool bidirectionnel;
 
         /// <summary>
         /// Obtient le premier nœud du lien.
@@ -37,16 +36,26 @@ namespace Projet_PSI
         }
 
         /// <summary>
-        /// Constructeur de la classe Lien.
+        /// Indique si la liaison est à double sens
         /// </summary>
-        /// <param name="noeud1">Premier nœud du lien.</param>
-        /// <param name="noeud2">Deuxième nœud du lien.</param>
-        /// <param name="poids">Poids du lien (1 par défaut).</param>
-        public Lien(Noeud<T> noeud1, Noeud<T> noeud2, int poids = 1)
+        public bool Bidirectionnel
+        {
+            get { return bidirectionnel; }
+        }
+
+        /// <summary>
+        /// Constructeur du lien.
+        /// </summary>
+        /// <param name="noeud1">Premier nœud</param>
+        /// <param name="noeud2">Deuxième nœud</param>
+        /// <param name="poids">Poids de l’arête (ex : temps de trajet)</param>
+        /// <param name="bidirectionnel">Indique si la liaison est à double sens</param>
+        public Lien(Noeud<T> noeud1, Noeud<T> noeud2, int poids = 1, bool bidirectionnel = false)
         {
             this.noeud1 = noeud1;
             this.noeud2 = noeud2;
             this.poids = poids;
+            this.bidirectionnel = bidirectionnel;
         }
 
         /// <summary>

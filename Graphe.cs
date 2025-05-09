@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Projet_PSI
 {
@@ -62,17 +60,20 @@ namespace Projet_PSI
         /// <param name="poids">Poids du lien (1 par défaut).</param>
         public void AjouterLien(int id1, int id2, int poids = 1)
         {
-            if (noeuds.ContainsKey(id1) && noeuds.ContainsKey(id2))
+            if (!noeuds.ContainsKey(id1) || !noeuds.ContainsKey(id2)) return;
+
+            var n1 = noeuds[id1];
+            var n2 = noeuds[id2];
+
+            liens.Add(new Lien<T>(n1, n2, poids));
+
+            n1.AjouterVoisin(n2);
+            n2.AjouterVoisin(n1);
+
+            // Si un poids existe déjà, on garde le plus GRAND
+            int actuel = matriceAdjacence[id1, id2];
+            if (poids > actuel)
             {
-                Noeud<T> n1 = noeuds[id1];
-                Noeud<T> n2 = noeuds[id2];
-
-                Lien<T> lien = new Lien<T>(n1, n2, poids);
-                liens.Add(lien);
-
-                n1.AjouterVoisin(n2);
-                n2.AjouterVoisin(n1);
-
                 matriceAdjacence[id1, id2] = poids;
                 matriceAdjacence[id2, id1] = poids;
             }
@@ -287,7 +288,7 @@ namespace Projet_PSI
         /// </summary>
         public List<int> CheminDijkstra(int startId, int endId)
         {
-            var dist = new Dictionary<int, int>(); 
+            var dist = new Dictionary<int, int>();
             var prev = new Dictionary<int, int?>();
             var nonVisites = new HashSet<int>(noeuds.Keys);
 

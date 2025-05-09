@@ -1,17 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Projet_PSI
 {
+    /// <summary>
+    /// Représente un nœud générique dans un graphe.
+    /// </summary>
+    /// <typeparam name="T">Type des données contenues dans le nœud</typeparam>
     public class Noeud<T>
     {
         private int id;
         private T data;//Données de type T associées au nœud
         private List<Noeud<T>> voisins;//Liste des nœuds voisins
 
+        /// <summary>
+        /// Obtient ou définit les identifiant associées au nœud.
+        /// </summary>
         public int Id
         {
             get { return id; }

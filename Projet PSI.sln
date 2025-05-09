@@ -5,8 +5,6 @@ VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projet PSI", "Projet PSI.csproj", "{FEFCE2FC-5754-497D-863D-BCD6233D21CE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projet PSITests", "..\Projet PSITests\Projet PSITests.csproj", "{C5AFC263-C102-4D7C-8466-DFF248D64DB1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
